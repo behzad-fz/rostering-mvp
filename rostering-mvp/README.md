@@ -31,7 +31,7 @@ python3 run_demo.py --regime EASA-FTL --delay-min 180
 python3 run_demo.py --days 7 --seed 42
 ```
 
-Tests (14 across `test_rules.py` + `test_recovery.py`):
+Tests (17 across `test_rules.py` + `test_recovery.py`):
 
 ```sh
 python3 -m unittest discover -s . -p 'test_*.py'
@@ -53,11 +53,11 @@ should surface:
 - **Recovery proposals** for the gaps: the picker allocates reserve callouts
   (and a swap when day-3 reserves conflict) across all five fixable gaps;
   pairing surgery splits the over-long X pairing (P-SFO-0 keeps legs 1–2,
-  P-SFO-4 covers legs 3–4). Applying the six proposals cuts uncovered
-  non-cancelled flights 14 → 2 and violating crews 3 → 1. The one surviving
-  violation is a realistic nuance: two broken crews shared a pairing and only
-  one was relieved — the advisory tells the scheduler to also relieve
-  P-SFO-3's accumulator exposure.
+  P-SFO-4 covers legs 3–4). Applying the seven proposals cuts uncovered
+  non-cancelled flights 14 → 0 and violating crews 3 → 0. The tricky case —
+  two broken crews sharing one pairing — is closed by a **release**: P-SFO-3
+  is taken off the pairing (which stays covered by the reserve) so her
+  accumulator exposure heals without double-crewing anyone.
 
 ## Verified vs. approximated rules
 
@@ -107,12 +107,17 @@ rostering-mvp/
   boundary k; the legality-broken crew keeps a legal prefix and a fresh
   crew (reserve/swap) takes the suffix. This turned the previously *refused*
   X-long case into a fixable proposal.
+- **Knock-on / shared-pairing relief** (`secondary_relief`) — after the main
+  selection, crews still in violation (the second broken crew on a
+  double-crewed pairing, or a crew overloaded by a swap) are relieved:
+  release-without-replacement when the pairing is already covered, else
+  re-crew with a legality-clean taker. Validated end-to-end: the relieved crew
+  must heal, the taker must stay fully legal, and no previously-ok crew may
+  break.
 
 **Next:**
 - **Deadhead / reposition actions** with cost modeling once reserves run out
   at the affected base.
-- **Shared-pairing relief**: when two crews on one pairing are both broken,
-  relieve *each* of them (currently only the first is relieved).
 - **Real rule packs** — encode actual FAR 117 Table B/C and a carrier's CBA as
   versioned, regression-tested rule packs (re-fetch eCFR when rate limits
   clear: `/api/versioner/v1/full/<date>/title-14.xml?part=117`).

@@ -70,6 +70,25 @@ class TestRecovery(unittest.TestCase):
         measure(self.w, self.eng, proposals)
         self.assertEqual(len(self.w.assignments), before)
 
+    def test_relief_closes_all_violations(self):
+        proposals, outcome = generate(self.w, self.eng, self.checks)
+        self.assertEqual(outcome["after_violations"], 0)
+        self.assertEqual(outcome["after_uncovered_non_cancelled"], 0)
+        reliefs = [p for p in proposals if p["kind"] == "relieve"]
+        self.assertGreaterEqual(len(reliefs), 1)
+        self.assertTrue(any(p.get("relieved_crew") == "P-SFO-3" for p in reliefs),
+                        reliefs)
+
+    def test_relief_uses_each_crew_once(self):
+        proposals, _ = generate(self.w, self.eng, self.checks)
+        crews = [p["crew_id"] for p in proposals if p.get("crew_id")]
+        self.assertEqual(len(crews), len(set(crews)),
+                         f"crew reused across actions: {crews}")
+
+    def test_exact_proposals_applied(self):
+        _, outcome = generate(self.w, self.eng, self.checks)
+        self.assertEqual(outcome["proposals_applied"], 7)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

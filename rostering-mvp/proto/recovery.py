@@ -270,8 +270,13 @@ def generate(w: World, engine: RuleEngine, checks: Dict[str, CrewCheck]):
                              "FDP limits and no legal split/single-crew option "
                              "exists) — manual re-time needed")})
 
+    # --- secondary relief: close remaining violations by offloading duties ---
+    reliefs = secondary_relief(w, engine, checks, proposals, used)
+    proposals.extend(reliefs)
+
     # advisory rows: accumulator exposure & at-risk monitors
     handled = {p["crew_id"] for p in proposals if p.get("crew_id")}
+    handled |= {p["relieved_crew"] for p in proposals if p.get("relieved_crew")}
     for cid, cc in checks.items():
         if cid in handled or cc.ok:
             continue
@@ -294,14 +299,111 @@ def generate(w: World, engine: RuleEngine, checks: Dict[str, CrewCheck]):
     return proposals, outcome
 
 
+def secondary_relief(w: World, engine: RuleEngine, checks: Dict[str, CrewCheck],
+                     proposals: List[dict], used: set):
+    """Close residual violations after the main selection + surgery.
+
+    A pairing can carry more than one broken crew (e.g., an augmented
+    two-pilot pairing, or a swap that over-loaded a healthy crew): the picker
+    covers the pairing once, but the *other* broken crew stays on it and stays
+    in violation. `relieve` offloads that crew's duty to a legality-clean
+    taker. Validated end-to-end: the relieved crew must heal, the taker must
+    stay fully legal, and no previously-ok crew may become broken.
+    """
+    w2 = copy.deepcopy(w)
+    for p in proposals:
+        if p["kind"] in ("reserve", "swap", "surgery") and p.get("crew_id") and p.get("legality_ok"):
+            _apply(w2, p)
+    checks2 = evaluate(w2, engine)
+    before_broken = {cid for cid, c in checks2.items() if c.worst == "violation"}
+    reliefs: List[dict] = []
+    used = set(used)
+
+    for cid in sorted(before_broken):
+        crew = _crew(w2, cid)
+        if crew is None or cid in used:
+            continue
+        my_pids = sorted(pid for c2, pid in w2.assignments if c2 == cid)
+        for pid in my_pids:
+            # 1) preferred: release without replacement — the pairing is often
+            #    already covered by the main selection (reserve/swap), so the
+            #    broken crew can simply be taken off it.
+            w3r = copy.deepcopy(w2)
+            w3r.assignments = [a for a in w3r.assignments
+                               if not (a[0] == cid and a[1] == pid)]
+            chk3r = evaluate(w3r, engine)
+            others = sorted(c2 for c2, p2 in w3r.assignments if p2 == pid)
+            if chk3r[cid].worst != "violation" and \
+                    not ({cc for cc, c3 in chk3r.items() if c3.worst == "violation"}
+                         - before_broken):
+                reliefs.append({
+                    "kind": "relieve", "pairing_id": pid,
+                    "flight_desc": describe_pairing(w2, pid),
+                    "crew_id": None, "relieved_crew": cid,
+                    "original_crew": cid, "broken_crew": cid,
+                    "score": 12.0, "legality_ok": True, "margin_after": None,
+                    "note": (f"relieve {cid}: released from {pid} "
+                             f"(pairing keeps {', '.join(others) or 'no other crew — needs manual cover'})"),
+                })
+                used.add(cid)
+                break
+            # 2) fallback: re-crew with a legality-clean taker
+            p_obj = w2.pairing(pid)
+            f0 = w2.flight(p_obj.flight_ids[0])
+            cands: List[tuple] = []
+            for rc in w2.reserves.get(f0.day, []):
+                c = _crew(w2, rc)
+                if c and c.group == crew.group and c.base == crew.base and rc not in used:
+                    ok, margin = _crew_can_take(w2, engine, rc, pid)
+                    if ok:
+                        cands.append((rc, "reserve", 10.0, margin))
+            for c in w2.crews:
+                if c.group != crew.group or c.base != crew.base:
+                    continue
+                if c.id in used or c.id == crew.id or c.id in w2.reserves.get(f0.day, []):
+                    continue
+                ok, margin = _crew_can_take(w2, engine, c.id, pid)
+                if ok:
+                    cands.append((c.id, "swap", 20.0 + c.seniority * 0.1, margin))
+            cands.sort(key=lambda x: (x[2], x[0]))
+            matched = False
+            for taker, kind, score, margin in cands:
+                w3 = copy.deepcopy(w2)
+                w3.assignments = [a for a in w3.assignments
+                                  if not (a[0] == cid and a[1] == pid)]
+                w3.assignments.append((taker, pid))
+                chk3 = evaluate(w3, engine)
+                if chk3[cid].worst == "violation":
+                    continue                      # relief did not heal the crew
+                if {cc for cc, c3 in chk3.items() if c3.worst == "violation"} - before_broken:
+                    continue                      # creates a new violation
+                reliefs.append({
+                    "kind": "relieve", "pairing_id": pid,
+                    "flight_desc": describe_pairing(w2, pid),
+                    "crew_id": taker, "relieved_crew": cid,
+                    "original_crew": cid, "broken_crew": cid,
+                    "score": 15.0 + score / 10.0, "legality_ok": True,
+                    "margin_after": margin,
+                    "note": f"relieve {cid}: re-crew {pid} with {taker} ({kind})",
+                })
+                used.add(taker)
+                used.add(cid)
+                matched = True
+                break
+            if matched:
+                break
+    return reliefs
+
+
 # ------------------------------------------------------------ measurement
 def _apply(w2: World, p: dict) -> None:
-    if p["kind"] in ("reserve", "swap"):
-        pid, cid = p["pairing_id"], p["crew_id"]
-        broken = p.get("broken_crew")
+    if p["kind"] in ("reserve", "swap", "relieve"):
+        broken = p.get("broken_crew", p.get("relieved_crew"))
         w2.assignments = [a for a in w2.assignments
-                          if not (a[1] == pid and (broken is None or a[0] == broken))]
-        w2.assignments.append((cid, pid))
+                          if not (a[1] == p["pairing_id"]
+                                  and (broken is None or a[0] == broken))]
+        if p.get("crew_id"):
+            w2.assignments.append((p["crew_id"], p["pairing_id"]))
     elif p["kind"] == "surgery":
         pid = p["pairing_id"]
         pair = next(pp for pp in w2.pairings if pp.id == pid)
@@ -325,9 +427,14 @@ def measure(w: World, engine: RuleEngine, proposals: List[dict]) -> dict:
     before = _counts(w, engine)
     applied = 0
     for p in proposals:
-        if p["kind"] not in ("reserve", "swap", "surgery"):
+        if p["kind"] not in ("reserve", "swap", "surgery", "relieve"):
             continue
-        if not (p.get("legality_ok") and p.get("crew_id")):
+        if not p.get("legality_ok"):
+            continue
+        if p["kind"] == "relieve":
+            if not (p.get("crew_id") or p.get("relieved_crew")):
+                continue
+        elif not p.get("crew_id"):
             continue
         _apply(w2, p)
         applied += 1
