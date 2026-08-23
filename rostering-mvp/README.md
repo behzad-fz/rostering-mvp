@@ -31,7 +31,7 @@ python3 run_demo.py --regime EASA-FTL --delay-min 180
 python3 run_demo.py --days 7 --seed 42
 ```
 
-Tests (17 across `test_rules.py` + `test_recovery.py`):
+Tests (19 across `test_rules.py` + `test_recovery.py`):
 
 ```sh
 python3 -m unittest discover -s . -p 'test_*.py'
@@ -114,10 +114,15 @@ rostering-mvp/
   re-crew with a legality-clean taker. Validated end-to-end: the relieved crew
   must heal, the taker must stay fully legal, and no previously-ok crew may
   break.
+- **Deadhead / reposition actions** — when a base has neither reserve nor a
+  legal local swap, a legality-clean crew from another base can reposition:
+  travel + operated duty modeled as one combined duty (as most FTL regimes
+  treat deadhead). Priced by travel minutes (score 40 + travel/60), so the
+  picker only chooses it as a last resort. Proven by a micro-world test where
+  it is the *only* legal option; in the standard demo it is correctly never
+  chosen because local options always suffice.
 
 **Next:**
-- **Deadhead / reposition actions** with cost modeling once reserves run out
-  at the affected base.
 - **Real rule packs** — encode actual FAR 117 Table B/C and a carrier's CBA as
   versioned, regression-tested rule packs (re-fetch eCFR when rate limits
   clear: `/api/versioner/v1/full/<date>/title-14.xml?part=117`).

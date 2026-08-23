@@ -13,10 +13,12 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from proto.legality import evaluate                 # noqa: E402
+from proto.model import Crew, Flight, Pairing, World  # noqa: E402
 from proto.recovery import generate, measure        # noqa: E402
 from proto.risk import uncovered_flights            # noqa: E402
 from proto.rules import RuleEngine                  # noqa: E402
 from proto.schedule_gen import build_world          # noqa: E402
+from proto.timeutil import hm                       # noqa: E402
 
 
 class TestRecovery(unittest.TestCase):
@@ -88,6 +90,60 @@ class TestRecovery(unittest.TestCase):
     def test_exact_proposals_applied(self):
         _, outcome = generate(self.w, self.eng, self.checks)
         self.assertEqual(outcome["proposals_applied"], 7)
+
+
+class TestDeadhead(unittest.TestCase):
+    """Crafted micro-world where deadhead is the ONLY legal recovery option:
+
+    base A has a legality-broken crew on pairing PA1, no reserves, and its
+    other pilot is busy with an overlapping duty (swap impossible); the only
+    fix is repositioning P-B-0 from base B (positioning leg + operated duty
+    modeled as one combined duty, as in most FTL regimes)."""
+
+    def _world(self):
+        w = World()
+        # gap pairing PA1 at base A: 2 legs, FDP-legal (surgery must not apply)
+        f1 = Flight("F1", 0, hm(0, 9, 0), hm(0, 10, 35), "A", "B")
+        f2 = Flight("F2", 0, hm(0, 11, 15), hm(0, 12, 50), "B", "A")
+        # busy crew's pairing PX overlapping the PA1 duty window
+        f3 = Flight("F3", 0, hm(0, 8, 0), hm(0, 9, 0), "A", "B")
+        f4 = Flight("F4", 0, hm(0, 12, 0), hm(0, 13, 0), "B", "A")
+        w.flights += [f1, f2, f3, f4]
+        w.pairings.append(Pairing("PA1", ["F1", "F2"]))
+        w.pairings.append(Pairing("PX", ["F3", "F4"]))
+        w.crews = [
+            Crew("P-A-0", "A", "P", hist_duty_168h=59 * 60),
+            Crew("P-A-1", "A", "P"),
+            Crew("P-B-0", "B", "P"),
+        ]
+        w.assignments = [("P-A-0", "PA1"), ("P-A-1", "PX")]
+        w.reserves = {0: []}                    # no reserves anywhere, day 0
+        w.index()
+        return w
+
+    def test_deadhead_is_sole_legal_option(self):
+        w = self._world()
+        eng = RuleEngine("FAR117")
+        checks = evaluate(w, eng)
+        self.assertEqual(checks["P-A-0"].worst, "violation")
+        proposals, outcome = generate(w, eng, checks)
+        dh = [p for p in proposals if p["kind"] == "deadhead"]
+        self.assertEqual(len(dh), 1, proposals)
+        self.assertEqual(dh[0]["crew_id"], "P-B-0")
+        self.assertIn("travel", dh[0]["note"])
+        self.assertGreater(dh[0]["score"], 40.0)          # priced above local actions
+        self.assertEqual(outcome["after_violations"], 0)
+        self.assertEqual(outcome["after_uncovered_non_cancelled"], 0)
+        applied = [p for p in proposals if p["kind"] in
+                   ("reserve", "swap", "surgery", "relieve", "deadhead")]
+        self.assertEqual([p["kind"] for p in applied], ["deadhead"])
+
+    def test_deadhead_not_chosen_when_local_options_exist(self):
+        w = build_world(days=7, seed=42)
+        eng = RuleEngine("FAR117")
+        checks = evaluate(w, eng)
+        proposals, _ = generate(w, eng, checks)
+        self.assertNotIn("deadhead", [p["kind"] for p in proposals])
 
 
 if __name__ == "__main__":

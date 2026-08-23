@@ -17,11 +17,14 @@ import copy
 from typing import Dict, List, Optional
 
 from .legality import build_duties, evaluate, pairing_duty
-from .model import Crew, Pairing, World
+from .model import Crew, DutyEvent, Pairing, World
 from .risk import uncovered_flights
 from .rules import CrewCheck, RuleEngine
+from .timeutil import DAY
 
 GAP_VALUE = 100.0        # covering a gap dominates any single action score
+DEADHEAD_TRAVEL_MIN = 150   # representative inter-base repositioning block
+DEADHEAD_LEAD_MIN = 180     # buffer before the operated duty (travel + turn)
 ADVISORY_ACCUMULATOR_RULES = (
     "ft-672h", "ft-28d", "duty-168h", "duty-672h", "ft-365d", "ft-year",
 )
@@ -54,6 +57,27 @@ def _crew_can_take(w: World, engine: RuleEngine, cid: str, pid: str):
     if cc.ok:
         return True, None
     return False, cc.min_margin
+
+
+def _deadhead_valid(w: World, engine: RuleEngine, cid: str, pid: str):
+    """Would crew cid remain fully legal after deadheading from another base
+    to operate pairing pid? The repositioning leg is modeled as one combined
+    duty (travel + operated duty), which is how most FTL regimes treat it.
+    Returns (ok, margin_after, travel_min)."""
+    p = w.pairing(pid)
+    base_duty = pairing_duty(w, p, cid)
+    ev = DutyEvent(crew_id=cid, pairing_id=f"DH:{pid}", day=base_duty.day,
+                   start=base_duty.start - DEADHEAD_LEAD_MIN,
+                   end=base_duty.end,
+                   segments=base_duty.segments + 1,
+                   flight_min=DEADHEAD_TRAVEL_MIN + base_duty.flight_min)
+    duties = list(build_duties(w).get(cid, [])) + [ev]
+    if not _no_overlap(duties):
+        return False, None, DEADHEAD_TRAVEL_MIN
+    cc = engine.check(_crew(w, cid), duties)
+    if cc.ok:
+        return True, None, DEADHEAD_TRAVEL_MIN
+    return False, cc.min_margin, DEADHEAD_TRAVEL_MIN
 
 
 def describe_pairing(w: World, pid: str) -> str:
@@ -111,6 +135,19 @@ def build_gap_candidates(w: World, engine: RuleEngine, checks: Dict[str, CrewChe
                                    "score": 20.0 + c.seniority * 0.1,
                                    "legality_ok": True, "margin_after": margin,
                                    "note": "crew swap"})
+        # deadhead / reposition (last resort — other-base crews, priced by
+        # travel minutes; only chosen when local reserve/swap options fail)
+        for c in w.crews:
+            if c.group != group or c.base == f0.origin or c.id in w.reserves.get(f0.day, []):
+                continue
+            ok, margin, travel = _deadhead_valid(w, engine, c.id, pid)
+            if ok:
+                candidates.append({"kind": "deadhead", "crew_id": c.id,
+                                   "score": 40.0 + travel / 60.0 + c.seniority * 0.1,
+                                   "legality_ok": True, "margin_after": margin,
+                                   "travel_min": travel,
+                                   "note": (f"deadhead {c.id} ({c.base} -> "
+                                            f"{f0.origin}, ~{travel} min travel)")})
         candidates.sort(key=lambda x: (x["score"], x["crew_id"]))
         out.append({"pid": pid, "flight_desc": describe_pairing(w, pid),
                     "base": f0.origin, "day": f0.day, "group": group,
@@ -193,6 +230,13 @@ def find_surgery(w: World, engine: RuleEngine, gap: dict, checks: Dict[str, Crew
     n = len(p.flight_ids)
     if n < 2:
         return None
+    # Surgery relieves FDP-over-long pairings; a normal-length pairing should
+    # be fixed by swap/deadhead instead, so refuse to split it.
+    ref_crew = gap["broken"][0] if gap["broken"] else gap["orig"]
+    if ref_crew:
+        d = pairing_duty(w, p, ref_crew)
+        if d.end - d.start <= engine.fdp_limit_min(d.start % DAY, d.segments):
+            return None
     pid = gap["pid"]
     broken = gap["broken"][0] if gap["broken"] else None
     orig = gap["orig"]
@@ -312,7 +356,7 @@ def secondary_relief(w: World, engine: RuleEngine, checks: Dict[str, CrewCheck],
     """
     w2 = copy.deepcopy(w)
     for p in proposals:
-        if p["kind"] in ("reserve", "swap", "surgery") and p.get("crew_id") and p.get("legality_ok"):
+        if p["kind"] in ("reserve", "swap", "surgery", "deadhead") and p.get("crew_id") and p.get("legality_ok"):
             _apply(w2, p)
     checks2 = evaluate(w2, engine)
     before_broken = {cid for cid, c in checks2.items() if c.worst == "violation"}
@@ -397,7 +441,7 @@ def secondary_relief(w: World, engine: RuleEngine, checks: Dict[str, CrewCheck],
 
 # ------------------------------------------------------------ measurement
 def _apply(w2: World, p: dict) -> None:
-    if p["kind"] in ("reserve", "swap", "relieve"):
+    if p["kind"] in ("reserve", "swap", "relieve", "deadhead"):
         broken = p.get("broken_crew", p.get("relieved_crew"))
         w2.assignments = [a for a in w2.assignments
                           if not (a[1] == p["pairing_id"]
@@ -427,7 +471,7 @@ def measure(w: World, engine: RuleEngine, proposals: List[dict]) -> dict:
     before = _counts(w, engine)
     applied = 0
     for p in proposals:
-        if p["kind"] not in ("reserve", "swap", "surgery", "relieve"):
+        if p["kind"] not in ("reserve", "swap", "surgery", "relieve", "deadhead"):
             continue
         if not p.get("legality_ok"):
             continue
