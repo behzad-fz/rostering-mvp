@@ -92,6 +92,28 @@ class TestRecovery(unittest.TestCase):
         self.assertEqual(outcome["proposals_applied"], 7)
 
 
+class TestPropagation(unittest.TestCase):
+    """Delays slide rotations with a minimum-turn floor (they must not
+    compress the duty window)."""
+
+    def _pair(self):
+        w = World()
+        f1 = Flight("F1", 0, hm(0, 8, 0), hm(0, 9, 0), "A", "B")
+        f2 = Flight("F2", 0, hm(0, 9, 40), hm(0, 10, 40), "B", "A")
+        w.flights += [f1, f2]
+        w.pairings.append(Pairing("P1", ["F1", "F2"]))
+        w.index()
+        return w
+
+    def test_delay_slides_not_compresses(self):
+        from proto.disrupt import MIN_TURN_MIN, apply_delay
+        w = self._pair()
+        apply_delay(w, ["F1"], 100)
+        f2 = w.flight("F2")
+        self.assertEqual(f2.delay, 100)                       # full slide
+        self.assertGreaterEqual(f2.eff_dep - w.flight("F1").eff_arr, MIN_TURN_MIN)
+
+
 class TestDeadhead(unittest.TestCase):
     """Crafted micro-world where deadhead is the ONLY legal recovery option:
 

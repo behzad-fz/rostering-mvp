@@ -33,7 +33,7 @@ class TestFdp(unittest.TestCase):
         self.assertTrue(cc.ok, cc.violations)
 
     def test_fdp_violation(self):
-        # report 05:00 (start band 05-06), 3+ segments -> limit 11 h;
+        # report 05:00 (exact Table B 0500-0559, 4 segments) -> limit 12 h;
         # duty of 12.5 h must violate
         c = Crew("CREW-BAD", "SFO", "P")
         cc = self.eng.check(c, [duty("CREW-BAD", 0, 5, 0, 17, 30, 4, 480)])
@@ -44,10 +44,10 @@ class TestFdp(unittest.TestCase):
         self.assertLess(v.margin_min, 0)
 
     def test_at_risk_duty(self):
-        # report 07:00 (band 07-12, 3+ segments -> 12 h), duty 11 h 25 m
-        # -> margin +35 min => at_risk (below AT_RISK_MIN)
+        # report 06:00 (exact Table B 0600-0659, 3 segments -> 12 h),
+        # duty 11 h 15 m -> margin +45 min => at_risk (below AT_RISK_MIN)
         c = Crew("CREW-AT", "SFO", "P")
-        cc = self.eng.check(c, [duty("CREW-AT", 0, 7, 0, 18, 25, 4, 460)])
+        cc = self.eng.check(c, [duty("CREW-AT", 0, 6, 0, 17, 15, 3, 380)])
         v = next((v for v in cc.violations if v.rule_id == "FAR117.fdp-per-duty"), None)
         self.assertIsNotNone(v)
         self.assertEqual(v.severity, "at_risk")
@@ -78,6 +78,39 @@ class TestAccumulators(unittest.TestCase):
         c = Crew("CREW-DU", "SFO", "P", hist_duty_168h=59 * 60)
         cc = eng.check(c, [duty("CREW-DU", 0, 8, 0, 11, 0, 2, 150)])  # +3h duty -> 62h
         self.assertIn("FAR117.duty-168h", [v.rule_id for v in cc.violations])
+
+
+class TestExactTables(unittest.TestCase):
+    """Locks the FAR 117 Table B/C values fetched from eCFR (2025-01-01)."""
+
+    def setUp(self):
+        self.eng = RuleEngine("FAR117")
+
+    def limit(self, h, m, segs, aug=False, cls=1, pilots=3):
+        return self.eng.fdp_limit_min(hm(0, h, m), segs, augmented=aug,
+                                      aug_class=cls, aug_pilots=pilots)
+
+    def test_table_b_spot_values(self):
+        self.assertEqual(self.limit(2, 0, 5), 9 * 60)          # 0000-0359 any segs
+        self.assertEqual(self.limit(4, 0, 5), 9 * 60)          # 0400-0459, 5 segs
+        self.assertEqual(self.limit(4, 0, 2), 10 * 60)         # 0400-0459, 2 segs
+        self.assertEqual(self.limit(5, 0, 4), 12 * 60)         # 0500-0559, 4
+        self.assertEqual(self.limit(8, 0, 2), 14 * 60)         # 0700-1159, 2
+        self.assertEqual(self.limit(8, 0, 7), 11.5 * 60)       # 0700-1159, 7+ -> 11.5h
+        self.assertEqual(self.limit(20, 0, 5), 10 * 60)        # 1700-2159, 5
+        self.assertEqual(self.limit(22, 0, 3), 10 * 60)        # 2200-2259, 3
+        self.assertEqual(self.limit(23, 0, 4), 9 * 60)         # 2300-2359, 4
+
+    def test_table_c_spot_values(self):
+        self.assertEqual(self.limit(8, 0, 2, aug=True, cls=1, pilots=3), 17 * 60)
+        self.assertEqual(self.limit(8, 0, 2, aug=True, cls=1, pilots=4), 19 * 60)
+        self.assertEqual(self.limit(8, 0, 2, aug=True, cls=3, pilots=3), 15 * 60)
+        self.assertEqual(self.limit(3, 0, 2, aug=True, cls=2, pilots=4), 15.5 * 60)
+
+    def test_unacclimated_reduction(self):
+        self.assertEqual(
+            self.eng.fdp_limit_min(hm(0, 8, 0), 2, acclimated=False),
+            self.limit(8, 0, 2) - 30)
 
 
 class TestEasa(unittest.TestCase):

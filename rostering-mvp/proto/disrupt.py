@@ -1,11 +1,16 @@
 """Disruption simulation: delays, cancellations, and propagation through
-pairings. The prototype models simple time-based propagation: a delayed leg
-pushes subsequent legs of the same pairing only by the unabsorbed remainder
-after scheduled turn buffers.
+pairings.
+
+Propagation model: a delayed first leg slides the rest of the rotation with a
+minimum turn time floor — eff_dep(next) = max(scheduled + accrued delay,
+arr(prev) + MIN_TURN_MIN). This preserves duty length (delays stretch the day,
+they don't compress it) and lets schedule pressure accumulate realistically.
 """
 from typing import List
 
 from .model import Flight, World
+
+MIN_TURN_MIN = 40  # realistic minimum ground/turn time at the gate
 
 
 def apply_delay(w: World, flight_ids: List[str], delay_min: int) -> int:
@@ -23,24 +28,23 @@ def apply_delay(w: World, flight_ids: List[str], delay_min: int) -> int:
 
 
 def _propagate_pairing(w: World, first: Flight, delay_min: int) -> int:
-    """Push the unabsorbed remainder of a delay through subsequent legs of
-    every pairing containing `first`."""
+    """Slide the remaining legs of every pairing containing `first`."""
     touched = 0
     for p in w.pairings:
         ids = p.flight_ids
         if first.id not in ids:
             continue
         idx = ids.index(first.id)
+        prev = w.flight(ids[idx])
         for j in range(idx + 1, len(ids)):
-            prev = w.flight(ids[j - 1])
             cur = w.flight(ids[j])
-            # scheduled turn buffer between the two legs
-            gap = cur.dep - prev.arr
-            # how much of the accumulated delay is still unabsorbed
-            carry = prev.delay - gap if prev.delay is not None else 0
-            if carry <= 0:
+            # departure = max(scheduled + accrued delay, prev arrival + min turn)
+            eff_dep = max(cur.dep + prev.delay, prev.eff_arr + MIN_TURN_MIN)
+            new_delay = eff_dep - cur.dep
+            if new_delay <= 0:
                 break
-            cur.delay = max(cur.delay, carry)
+            cur.delay = max(cur.delay, new_delay)
+            prev = cur
             touched += 1
     return touched
 

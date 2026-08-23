@@ -14,7 +14,7 @@ RULE_DESCRIPTIONS = {
     "FAR117.duty-168h": "Duty > 60 h in any 168 consecutive hours",
     "FAR117.duty-672h": "Duty > 190 h in any 672 consecutive hours",
     "FAR117.fdp-per-duty": "Per-duty FDP exceeds Table B limit",
-    "FAR117.ft-per-fdp": "Per-duty flight time exceeds cap",
+    "co.ft-per-fdp": "Company flight-time guardrail (not a FAR 117 limit)",
     "FAR117.rest-min": "Rest between duties below minimum",
     "EASA-FTL.ft-28d": "Flight time > 100 h / 28 consecutive days",
     "EASA-FTL.ft-year": "Flight time > 900 h / calendar year",
@@ -164,10 +164,11 @@ Rule activity: {rb}</div>
 <h2>Reserve coverage gaps</h2>
 <table><tr><th>Position</th><th>Details</th></tr>{gro}</table>
 {prop_html}
-<div class="note"><b>Prototype notice.</b> Cumulative limits are the verified FAR 117 / EASA FTL values from primary sources
-(EUR-Lex CELEX 32014R0083; 14 CFR part 117 via eCFR). Per-duty FDP tables, minimum rest, and buffers are clearly-marked
-approximations — verify against the primary texts before production use. Synthetic data only; a real pilot carrier is required
-for Phase 1 validation.</div>
+<div class="note"><b>Prototype notice.</b> Cumulative limits are the verified FAR 117 / EASA FTL values from primary
+sources (EUR-Lex CELEX 32014R0083; 14 CFR part 117 via eCFR). Per-duty FDP tables are the <b>exact</b> FAR 117
+Table B/C values from eCFR (2025-01-01). Minimum rest, report/debrief buffers, the EASA per-duty scheme, and the
+company flight-time guardrail remain simplifications. Synthetic data only; a real pilot carrier is required for
+Phase 1 validation.</div>
 </body></html>"""
     with open(path, "w") as fh:
         fh.write(doc)

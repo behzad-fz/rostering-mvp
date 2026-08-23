@@ -31,7 +31,7 @@ python3 run_demo.py --regime EASA-FTL --delay-min 180
 python3 run_demo.py --days 7 --seed 42
 ```
 
-Tests (19 across `test_rules.py` + `test_recovery.py`):
+Tests (23 across `test_rules.py` + `test_recovery.py`):
 
 ```sh
 python3 -m unittest discover -s . -p 'test_*.py'
@@ -42,10 +42,12 @@ python3 -m unittest discover -s . -p 'test_*.py'
 The synthetic schedule is *mostly* legal, with baked-in findings the radar
 should surface:
 
-- `P-SFO-0` — a long 4-leg duty (report 05:00 → ends 17:15) → **FDP violation**
-  before any disruption; the day-2 SFO delay pushes it further over.
-- `P-SFO-1` — a near-max duty (margin +15 min) → **at risk**; the delay can
-  tip it into violation.
+- `P-SFO-0` — a long 4-leg duty reporting at 03:00 (→ ends 16:25, ~13 h 25 m
+  vs the **9 h** limit from exact Table B at 0000-0359) → **FDP violation**
+  before any disruption; the day-2 SFO delay slides the rotation and the
+  violation survives into the 0500-0559 band (12 h limit).
+- `P-SFO-1` — a near-max duty (margin +45 min vs exact Table B 0600-0659,
+  3 segments, 12 h limit) → **at risk**; the delay can tip it into violation.
 - `P-SFO-3` — pre-existing flight-time accumulator at 99 h/28 d → the 100 h
   cap trips.
 - `P-LAX-2` — pre-existing duty accumulator at 59 h/7 d → the 60 h cap trips.
@@ -67,14 +69,14 @@ should surface:
 |---|---|
 | FAR 117 flight time | 100 h / 672 h · **1,000 h / 365 d** |
 | FAR 117 duty | 60 h / 168 h · 190 h / 672 h |
+| FAR 117 per-duty FDP | **exact Table B/C** (eCFR, version 2025-01-01) |
 | EASA FTL flight time | 100 h / 28 d · 900 h / year · 1,000 h / 12 mo |
 
-**Approximations (flagged in code — verify before production):** per-duty FDP
-table (FAR 117 Table B trend), minimum rest (10 h / 12 h), report & debrief
-buffers (60 / 15 min), per-FDP flight-time cap (8 h / 9 h), EASA duty
-accumulators. The eCFR API was rate-limiting during this build; re-fetch
-`14 CFR part 117` tables (`/api/versioner/v1/full/<date>/title-14.xml?part=117`)
-and encode the real Table B/C cells.
+**Remaining simplifications (flagged in code):** minimum-rest variants (the
+10 h standard is modeled; FAR 117.25 reduced-rest conditions are not), report &
+debrief buffers (60 / 15 min), the company flight-time guardrail
+(`co.ft-per-fdp` — *not* a FAR 117 limit), EASA duty accumulators, and the
+EASA Annex III per-duty FDP scheme (the FAR 117 table is a placeholder there).
 
 ## Layout
 

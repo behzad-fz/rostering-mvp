@@ -1,18 +1,21 @@
 """Rule engine — Phase-0 subset of FAR 117 / EASA FTL.
 
-VERIFIED limits (fetched from primary sources in the research pass):
-  FAR 117 (14 CFR part 117, eCFR):
+VERIFIED from primary sources (fetched this session):
+  FAR 117 (14 CFR part 117, eCFR XML API, version 2025-01-01):
     - flight time:  100 h in any 672 consecutive hours;  1,000 h in any 365 days
     - duty hours:    60 h in any 168 consecutive hours;   190 h in any 672 h
+    - per-duty FDP:  Table B (unaugmented) and Table C (augmented), exact
+                     values encoded below
+    - minimum rest: 10 h (FAR 117.25; reduced-rest variants not modeled)
   EASA FTL (Reg (EU) No 83/2014, EUR-Lex CELEX 32014R0083):
     - flight time:  100 h / 28 consecutive days; 900 h / calendar year; 1,000 h / 12 months
 
-APPROXIMATIONS (flagged — verify against the primary texts before production use):
-  - the per-duty FDP table (approximation of FAR 117 Table B, acclimated,
-    unaugmented 2-pilot; augmented = +3 h trend from Table C)
-  - per-FDP flight-time cap (8 h unaugmented / 9 h augmented)
-  - minimum rest (10 h FAR 117 / 12 h EASA), report & debrief buffers,
-    and EASA duty-accumulator values
+Remaining simplifications (flagged):
+  - EASA's own Annex III per-duty FDP scheme is NOT encoded — the FAR 117
+    table is used as a placeholder for the EASA-FTL regime
+  - report (60 min) & debrief (15 min) buffers; EASA duty accumulators
+  - 'co.ft-per-fdp': a company flight-time guardrail (8 h / 9 h augmented) —
+    this is NOT a FAR 117 limit; FAR 117 governs duty via Table B/C
 """
 from dataclasses import dataclass, field
 from typing import List, Optional
@@ -23,14 +26,29 @@ from .timeutil import DAY
 HOUR = 60
 AT_RISK_MIN = 60  # margin below this (but >= 0) => "at risk"
 
-# Per-duty FDP limit (hours) by local start hour: (h0, h1, fdp_1_2seg, fdp_3plus)
-TABLE_B_APPROX = [
-    (0, 4, 9.0, 8.0),
-    (5, 6, 12.0, 11.0),
-    (7, 12, 13.0, 12.0),
-    (13, 16, 12.0, 11.0),
-    (17, 21, 11.0, 10.0),
-    (22, 23, 9.0, 8.0),
+# FAR 117 Table B — Flight Duty Period: Unaugmented Operations (hours).
+# Rows: (start-hour range, [FDP for 1, 2, 3, 4, 5, 6, 7+ segments]).
+TABLE_B = [
+    (0, 3, [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0]),
+    (4, 4, [10.0, 10.0, 10.0, 10.0, 9.0, 9.0, 9.0]),
+    (5, 5, [12.0, 12.0, 12.0, 12.0, 11.5, 11.0, 10.5]),
+    (6, 6, [13.0, 13.0, 12.0, 12.0, 11.5, 11.0, 10.5]),
+    (7, 11, [14.0, 14.0, 13.0, 13.0, 12.5, 12.0, 11.5]),
+    (12, 12, [13.0, 13.0, 13.0, 13.0, 12.5, 12.0, 11.5]),
+    (13, 16, [12.0, 12.0, 12.0, 12.0, 11.5, 11.0, 10.5]),
+    (17, 21, [12.0, 12.0, 11.0, 11.0, 10.0, 9.0, 9.0]),
+    (22, 22, [11.0, 11.0, 10.0, 10.0, 9.0, 9.0, 9.0]),
+    (23, 23, [10.0, 10.0, 10.0, 9.0, 9.0, 9.0, 9.0]),
+]
+
+# FAR 117 Table C — Flight Duty Period: Augmented Operations (hours).
+# Rows: (start-hour range, {rest-facility class: (3 pilots, 4 pilots)}).
+TABLE_C = [
+    (0, 5, {1: (15.0, 17.0), 2: (14.0, 15.5), 3: (13.0, 13.5)}),
+    (6, 6, {1: (16.0, 18.5), 2: (15.0, 16.5), 3: (14.0, 14.5)}),
+    (7, 12, {1: (17.0, 19.0), 2: (16.5, 18.0), 3: (15.0, 15.5)}),
+    (13, 16, {1: (16.0, 18.5), 2: (15.0, 16.5), 3: (14.0, 14.5)}),
+    (17, 23, {1: (15.0, 17.0), 2: (14.0, 15.5), 3: (13.0, 13.5)}),
 ]
 
 FAR117_PARAMS = {
@@ -108,19 +126,27 @@ class RuleEngine:
 
     # ------------------------------------------------------------------ FDP
     def fdp_limit_min(self, start_mod_1440: int, segments: int,
-                      augmented: bool = False, acclimated: bool = True) -> int:
-        """Approximation of FAR 117 Table B (acclimated, unaugmented)."""
+                      augmented: bool = False, acclimated: bool = True,
+                      aug_class: int = 1, aug_pilots: int = 3) -> int:
+        """FAR 117 per-duty FDP limit in minutes (Tables B/C, acclimated)."""
         hour = (start_mod_1440 % DAY) // 60
-        row = TABLE_B_APPROX[0]
-        for h0, h1, v12, v3p in TABLE_B_APPROX:
-            if h0 <= hour <= h1:
-                row = (h0, h1, v12, v3p)
-                break
-        val = row[2] if segments <= 2 else row[3]
         if augmented:
-            val += 3.0      # Table C trend (approximation)
+            row = TABLE_C[0]
+            for h0, h1, grid in TABLE_C:
+                if h0 <= hour <= h1:
+                    row = grid
+                    break
+            col = row[aug_class]
+            val = col[0] if aug_pilots == 3 else col[1]
+        else:
+            row = TABLE_B[0][2]
+            for h0, h1, vals in TABLE_B:
+                if h0 <= hour <= h1:
+                    row = vals
+                    break
+            val = row[min(segments, 7) - 1]
         if not acclimated:
-            val -= 0.5      # 117.13(b): -30 min
+            val -= 0.5      # 117.13(b): unacclimated FDP reduced by 30 min
         return int(round(val * HOUR))
 
     def _mk(self, rule_id: str, margin: float, ok_msg: Optional[str] = None) -> Optional[Violation]:
@@ -150,9 +176,11 @@ class RuleEngine:
             if v:
                 cc.violations.append(v)
             ft_lim = self.p["ft_per_fdp"]
-            v = self._mk(f"{self.p['regime']}.ft-per-fdp",
+            # company flight-time guardrail — not a FAR 117 limit (FAR 117
+            # governs duty via Table B/C); kept as an operator safety margin
+            v = self._mk("co.ft-per-fdp",
                          ft_lim - d.flight_min,
-                         f"{d.pairing_id}: flight time {d.flight_min // 60}h vs cap {ft_lim // 60}h")
+                         f"{d.pairing_id}: flight time {d.flight_min // 60}h vs guardrail {ft_lim // 60}h")
             if v:
                 cc.violations.append(v)
 

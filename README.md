@@ -25,8 +25,10 @@ Open `rostering-mvp/out/report_disrupted.html` for the dashboard.
 
 ## What the prototype demonstrates
 
-- A **legality engine** over cumulative limits verified from primary sources,
-  with clearly-marked approximations for per-duty tables.
+- A **legality engine** over verified FAR 117 / EASA FTL limits — including
+  the **exact FAR 117 Table B/C per-duty FDP tables** (fetched from eCFR);
+  remaining simplifications (rest variants, EASA Annex III per-duty scheme,
+  buffers, company flight-time guardrail) are flagged in code.
 - A **risk radar**: ranked at-risk crews, rule findings with margins,
   uncovered flights, reserve gaps.
 - **Recovery that respects legality**: an exact picker over the candidate

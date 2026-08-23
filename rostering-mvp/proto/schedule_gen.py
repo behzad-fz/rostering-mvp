@@ -111,14 +111,18 @@ def build_world(days: int = 7, seed: int = 42) -> World:
 
 def _inject_issues(w: World) -> World:
     """Overwrite a few flights/assignments to seed baseline violations/risk."""
-    # 1) FDP violation: P-SFO-0 gets one long 4-leg duty starting 06:00 day 2.
+    # 1) FDP violation: P-SFO-0 gets a long 4-leg duty reporting at 03:00 day 2.
+    #    Report hour 03 -> exact FAR 117 Table B (0000-0359, 4 segments) = 9 h,
+    #    but the duty runs ~13 h 25 m -> violation that SURVIVES the morning-bank
+    #    delay: the 150-min slide moves it into the 0500-0559 band (12 h limit)
+    #    with the duty still over ~13 h.
     day = 2
     f0 = w.flights  # rebuild a custom pairing
     segs = [
-        (day, 6, 0, "SFO", "LAX", 95),
-        (day, 8, 25, "LAX", "SEA", 165),
-        (day, 11, 20, "SEA", "DEN", 135),
-        (day, 14, 25, "DEN", "SFO", 155),
+        (day, 4, 0, "SFO", "LAX", 95),
+        (day, 6, 15, "LAX", "SEA", 165),
+        (day, 9, 40, "SEA", "DEN", 135),
+        (day, 13, 35, "DEN", "SFO", 155),
     ]
     ids = []
     for i, (d, h, m, o, de, blk) in enumerate(segs):
@@ -133,14 +137,15 @@ def _inject_issues(w: World) -> World:
     w.assignments.append(("P-SFO-0", pid))
     w.index()
 
-    # 2) At-risk: P-SFO-1 gets a 3-leg duty starting 08:00 day 3, ending
-    #    ~18:45 — duty ~11.75 h vs the 12 h FDP limit at that start hour
-    #    (deliberately long turns; flight time stays under the 8 h cap).
+    # 2) At-risk: P-SFO-1 gets a 3-leg duty with report 06:00 day 3, ending
+    #    ~17:15 — duty ~11.25 h vs the 12.0 h FDP limit (exact FAR 117
+    #    Table B, 0600-0659, 3 segments; long turns, flight time under
+    #    the company guardrail).
     day = 3
     segs2 = [
-        (day, 8, 0, "SFO", "LAX", 95),
-        (day, 11, 40, "LAX", "SEA", 165),
-        (day, 16, 30, "SEA", "SFO", 120),
+        (day, 7, 0, "SFO", "LAX", 95),
+        (day, 10, 0, "LAX", "SEA", 165),
+        (day, 15, 0, "SEA", "SFO", 120),
     ]
     ids2 = []
     for i, (d, h, m, o, de, blk) in enumerate(segs2):
