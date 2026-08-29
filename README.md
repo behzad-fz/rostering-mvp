@@ -18,7 +18,7 @@ stdlib-only prototype of the disruption-recovery wedge.
 cd rostering-mvp
 python3 run_demo.py                # FAR 117 regime, disruption + recovery
 python3 run_demo.py --regime EASA-FTL --delay-min 180
-python3 -m unittest discover -s . -p 'test_*.py'   # 14 tests
+python3 -m unittest discover -s . -p 'test_*.py'   # 31 tests
 ```
 
 Open `rostering-mvp/out/report_disrupted.html` for the dashboard.
@@ -32,18 +32,22 @@ Open `rostering-mvp/out/report_disrupted.html` for the dashboard.
 - A **risk radar**: ranked at-risk crews, rule findings with margins,
   uncovered flights, reserve gaps.
 - **Recovery that respects legality**: an exact picker over the candidate
-  pool and pairing surgery — applied on a copy of the world, it cuts
-  uncovered non-cancelled flights 14 → 2 and violating crews 3 → 1 in the
-  demo scenario, and never proposes anything illegal.
+  pool, pairing surgery, knock-on relief, and deadhead modeling — applied on a
+  copy of the world, it cuts uncovered non-cancelled flights 16 → 0 and
+  violating crews 3 → 0 in the demo scenarios, and never proposes anything
+  illegal.
+- **What-if / fatigue + feed contract**: a scenario evaluator compares
+  "do nothing vs. the action plan" (legality, coverage, fatigue), and a
+  versioned feed contract is dogfooded by the demo export.
 
 ## Status & roadmap
 
 - Phase 0 (detection / risk radar) — done
-- Phase 1 (recourse generation) — done (greedy, superseded)
-- Phase 2 (exact picker + pairing surgery) — done (prototype-grade)
-- Next: deadhead modeling, shared-pairing relief, real rule packs (FAR 117
-  Table B/C, a carrier's CBA), feed-adapters data contract, what-if/fatigue.
-  See `rostering-mvp/README.md` for details.
+- Phase 1 (recourse generation) — done (greedy, superseded by Phase 2)
+- Phase 2 (exact picker, pairing surgery, relief, deadhead) — done (prototype-grade)
+- Exact FAR 117 Table B/C rule pack, what-if/fatigue, feed contract — done
+- Next: EASA Annex III per-duty scheme, a real CBA rule pack, licensed fatigue
+  model integration, OR-Tools/Gurobi at scale. See `rostering-mvp/README.md`.
 
 ## License
 

@@ -72,6 +72,7 @@ EASA_PARAMS = {
     "duty_168h": 60 * HOUR,   # approximation
     "duty_672h": 190 * HOUR,  # approximation
     "rest_min": 12 * HOUR,
+    "fdp_max_h": 13.0,        # Annex III placeholder (see fdp_limit_min)
     "report_buffer": 60,
     "debrief_buffer": 15,
     "ft_per_fdp": 8 * HOUR,
@@ -128,7 +129,16 @@ class RuleEngine:
     def fdp_limit_min(self, start_mod_1440: int, segments: int,
                       augmented: bool = False, acclimated: bool = True,
                       aug_class: int = 1, aug_pilots: int = 3) -> int:
-        """FAR 117 per-duty FDP limit in minutes (Tables B/C, acclimated)."""
+        """FAR 117 / EASA per-duty FDP limit in minutes."""
+        if self.name == "EASA-FTL":
+            # Annex III encoding pending (EUR-Lex bot-blocked on last attempt).
+            # Placeholder: basic daily FDP 13 h; the start-time/sector
+            # gradient and augmented extensions must be encoded from the
+            # regulation text when access is restored.
+            val = float(self.p.get("fdp_max_h", 13.0))
+            if not acclimated:
+                val -= 0.5
+            return int(round(val * HOUR))
         hour = (start_mod_1440 % DAY) // 60
         if augmented:
             row = TABLE_C[0]

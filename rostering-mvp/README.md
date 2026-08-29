@@ -9,7 +9,8 @@ It demonstrates, end to end, the Phase-0 capabilities of the plan:
 1. **World model** — a deterministic 7-day synthetic airline (flights,
    pairings, crews, reserves) built by `proto/schedule_gen.py`.
 2. **Rule engine** — FAR 117 and EASA-FTL regimes with **verified cumulative
-   limits** and clearly-marked approximations for per-duty tables.
+   limits** and the **exact FAR 117 Table B/C** per-duty FDP tables (eCFR,
+   2025-01-01); remaining simplifications are clearly flagged.
 3. **Legality evaluation** — per-crew duty timelines + accumulator checks.
 4. **Disruption simulation** — delays with propagation through pairings,
    plus cancellations.
@@ -22,6 +23,14 @@ It demonstrates, end to end, the Phase-0 capabilities of the plan:
    splits over-long pairings so the broken crew keeps a legal prefix and a
    fresh crew takes the suffix. Applied on a copy of the world to measure how
    many gaps close.
+8. **What-if & fatigue** — a scenario evaluator compares *do nothing vs. the
+   action plan* (legality + coverage + reserve usage + fatigue), and a
+   documented toy fatigue model (night duty, early starts, long days, short
+   rests) flags sustained-load crews; the real SAFTE/FAID/FAST-class model is
+   the integration point.
+9. **Feed contract** — `contract/README.md` specifies what a carrier's
+   adapters must push in; `run_demo.py` dogfoods it by exporting
+   `out/contract_sample.json` and validating it.
 
 ## Run it
 
@@ -31,7 +40,7 @@ python3 run_demo.py --regime EASA-FTL --delay-min 180
 python3 run_demo.py --days 7 --seed 42
 ```
 
-Tests (23 across `test_rules.py` + `test_recovery.py`):
+Tests (31 across `test_rules.py` + `test_recovery.py` + `test_extras.py`):
 
 ```sh
 python3 -m unittest discover -s . -p 'test_*.py'
@@ -53,13 +62,14 @@ should surface:
 - `P-LAX-2` — pre-existing duty accumulator at 59 h/7 d → the 60 h cap trips.
 - One cancelled return flight → **uncovered flight + reserve-gap** line.
 - **Recovery proposals** for the gaps: the picker allocates reserve callouts
-  (and a swap when day-3 reserves conflict) across all five fixable gaps;
-  pairing surgery splits the over-long X pairing (P-SFO-0 keeps legs 1–2,
-  P-SFO-4 covers legs 3–4). Applying the seven proposals cuts uncovered
-  non-cancelled flights 14 → 0 and violating crews 3 → 0. The tricky case —
-  two broken crews sharing one pairing — is closed by a **release**: P-SFO-3
-  is taken off the pairing (which stays covered by the reserve) so her
-  accumulator exposure heals without double-crewing anyone.
+  and swaps across six pairings; pairing surgery splits the over-long X
+  pairing (P-SFO-0 keeps legs 1–2, a fresh crew covers legs 3–4); a release
+  heals the second crew on the shared pairing. Applying the proposals cuts
+  uncovered non-cancelled flights 16 → 0 and violating crews 3 → 0 in both
+  the baseline and disrupted scenarios.
+- **What-if** confirms the plan: do nothing leaves 3 violations / 16 uncovered;
+  the plan takes both to zero (with reserve callouts, fatigue stats, and the
+  most-loaded crews listed on the dashboard).
 
 ## Verified vs. approximated rules
 
@@ -83,16 +93,24 @@ EASA Annex III per-duty FDP scheme (the FAR 117 table is a placeholder there).
 ```
 rostering-mvp/
   run_demo.py            # end-to-end demo runner
-  test_rules.py          # hand-computed unit tests
+  test_rules.py          # rule-engine unit tests
+  test_recovery.py       # recovery (picker/surgery/relief/deadhead) tests
+  test_extras.py         # fatigue / what-if / contract tests
+  contract/
+    README.md            # feed-adapters data contract (v1.0 draft)
   proto/
     __init__.py
     model.py             # Flight/Crew/Pairing/DutyEvent/World
     timeutil.py          # day+minute time helpers
-    rules.py             # RuleEngine (FAR117 | EASA-FTL)
-    schedule_gen.py      # deterministic synthetic schedule
+    rules.py             # RuleEngine (FAR117 | EASA-FTL) — exact Table B/C
+    schedule_gen.py      # deterministic synthetic schedule (+staffing sweep)
     legality.py          # duties + evaluate()
-    disrupt.py           # delay/cancellation + propagation
+    disrupt.py           # delay slide w/ min-turn floor, cancellations
     risk.py              # risk scores, uncovered flights, reserve gaps
+    recovery.py          # exact picker, surgery, relief, deadhead
+    fatigue.py           # toy duty-intensity model (documented weights)
+    foresight.py         # what-if scenario evaluator
+    contract.py          # feed-contract export + validation
     report.py            # JSON + HTML dashboards
   out/                   # generated reports (gitignore-able)
 ```
@@ -123,12 +141,20 @@ rostering-mvp/
   picker only chooses it as a last resort. Proven by a micro-world test where
   it is the *only* legal option; in the standard demo it is correctly never
   chosen because local options always suffice.
+- **What-if & fatigue** (`proto/foresight.py`, `proto/fatigue.py`) — fork the
+  world, apply or skip the plan, compare legality/coverage/fatigue; the fatigue
+  model is deliberately a *toy* (documented weights) — swap it for a licensed
+  SAFTE/FAID/FAST-class model via the same interface.
+- **Feed contract** (`contract/README.md`, `proto/contract.py`) — versioned
+  contract for planned/operational/crew/reserve feeds; the demo exports and
+  validates a conformant sample (`out/contract_sample.json`), so a carrier's
+  adapters have a concrete target to match.
 
 **Next:**
-- **Real rule packs** — encode actual FAR 117 Table B/C and a carrier's CBA as
-  versioned, regression-tested rule packs (re-fetch eCFR when rate limits
-  clear: `/api/versioner/v1/full/<date>/title-14.xml?part=117`).
-- **Data contract** — replace `schedule_gen` with the feed-adapters spec from
-  the architecture document (SFTP/file/API adapters, per-feed staleness).
-- **What-if / fatigue** — fork the world model, roll forward, and surface
-  fatigue-model margins (bio-mathematical model integration point).
+- **EASA Annex III per-duty scheme** — encode from EUR-Lex when access is
+  restored (bot-blocked last attempt); currently a documented flat 13 h
+  placeholder. The verified EASA *cumulative* limits are already exact.
+- **A real CBA rule pack** (seniority, custom bidding credits, reserve rules)
+  as a versioned, regression-tested constraint pack.
+- **Licensed fatigue model integration** and **OR-Tools/Gurobi** for the
+  picker at production scale.

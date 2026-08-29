@@ -69,7 +69,8 @@ def emit_json(path: str, scenarios: Dict[str, Dict[str, object]]) -> None:
 
 
 def emit_html(path: str, name: str, snap: Dict[str, object],
-              proposals: Optional[List[dict]] = None) -> None:
+              proposals: Optional[List[dict]] = None,
+              whatif: Optional[Dict[str, object]] = None) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
     s = snap["summary"]
     cards = [
@@ -131,6 +132,33 @@ def emit_html(path: str, name: str, snap: Dict[str, object],
                      '<table><tr><th>Action</th><th>Pairing</th><th>Flight</th>'
                      f'<th>Crew</th><th>Score</th><th>Note</th></tr>{prows}</table>')
 
+    wf_html = ""
+    if whatif:
+        dn = whatif["do_nothing"]
+        pl = whatif["plan"]
+        dels = whatif["deltas"]
+        rows = "".join(
+            f'<tr><td>{label}</td><td>{dn[key]}</td><td>{pl[key]}</td>'
+            f'<td class="dim">{dels[key]:+d}</td></tr>'
+            for key, label in (("violations", "Violations"),
+                               ("at_risk", "At-risk crews"),
+                               ("uncovered", "Uncovered flights")))
+        fat = pl.get("fatigue") or {}
+        fatrows = "".join(
+            f'<tr><td>{html.escape(r["crew_id"])}</td><td>{r["index"]}</td>'
+            f'<td>{r["level"]}</td></tr>'
+            for r in fat.get("top", []))
+        wf_html = ('<h2>What-if: do nothing vs. action plan</h2>'
+                   '<table><tr><th>Metric</th><th>Do nothing</th><th>Plan</th>'
+                   f'<th>Delta</th></tr>{rows}</table>'
+                   '<div class="meta">Plan applied '
+                   f'{pl.get("applied")} actions · reserve callouts {pl.get("reserve_callouts")} · '
+                   f'fatigue mean {fat.get("mean")} · high-fatigue crews {fat.get("high")}</div>')
+        if fatrows:
+            wf_html += ('<h3>Highest fatigue crews after plan</h3>'
+                        '<table><tr><th>Crew</th><th>Index</th><th>Level</th>'
+                        f'</tr>{fatrows}</table>')
+
     doc = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <title>Recovery Engine — Risk Radar · {html.escape(name)}</title>
@@ -164,6 +192,7 @@ Rule activity: {rb}</div>
 <h2>Reserve coverage gaps</h2>
 <table><tr><th>Position</th><th>Details</th></tr>{gro}</table>
 {prop_html}
+{wf_html}
 <div class="note"><b>Prototype notice.</b> Cumulative limits are the verified FAR 117 / EASA FTL values from primary
 sources (EUR-Lex CELEX 32014R0083; 14 CFR part 117 via eCFR). Per-duty FDP tables are the <b>exact</b> FAR 117
 Table B/C values from eCFR (2025-01-01). Minimum rest, report/debrief buffers, the EASA per-duty scheme, and the

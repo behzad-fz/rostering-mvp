@@ -104,8 +104,58 @@ def build_world(days: int = 7, seed: int = 42) -> World:
                 for d, (pid, segs) in picks:
                     w.assignments.append((crew_id, pid))
 
+    w = _staff_gaps(w)
     # ---- baseline issues ----------------------------------------------------
     w = _inject_issues(w)
+    return w
+
+
+def _staff_gaps(w: World) -> World:
+    """Ensure every pairing carries at least one pilot and one cabin crew.
+    The round-robin can leave slots empty; sweep them with crews that are free
+    that day (the contract validator requires non-empty crew_ids)."""
+    def day_of(pid):
+        p = w.pairing(pid)
+        return w.flight(p.flight_ids[0]).day
+
+    by_day_base = {}
+    for p in w.pairings:
+        f0 = w.flight(p.flight_ids[0])
+        by_day_base.setdefault((f0.day, f0.origin), []).append(p.id)
+
+    counts = {}
+    for cid, pid in w.assignments:
+        counts[cid] = counts.get(cid, 0) + 1
+
+    for (day, base), pids in by_day_base.items():
+        for pid in pids:
+            for group in ("P", "FA"):
+                have = any(a[0].startswith(f"{group}-{base}-") and a[1] == pid
+                           for a in w.assignments)
+                if have:
+                    continue
+                pool = [c for c in w.crews
+                        if c.id.startswith(f"{group}-{base}-")]
+                if not pool:
+                    continue
+                n = len(pool)
+
+                def cand_key(c):
+                    idx = int(c.id.rsplit("-", 1)[1])
+                    return (counts.get(c.id, 0), (idx + day * 5) % n, c.id)
+
+                placed = False
+                for c in sorted(pool, key=cand_key):
+                    busy = any(a[0] == c.id and day_of(a[1]) == day
+                               for a in w.assignments)
+                    if busy:
+                        continue
+                    w.assignments.append((c.id, pid))
+                    counts[c.id] = counts.get(c.id, 0) + 1
+                    placed = True
+                    break
+                if not placed:
+                    raise RuntimeError(f"cannot staff {pid} with a {group} crew")
     return w
 
 

@@ -13,12 +13,16 @@ Usage:
                         [--delay-min 150]
 """
 import argparse
+import json
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from proto.contract import to_contract_json, validate_contract    # noqa: E402
 from proto.disrupt import apply_cancellation, apply_delay          # noqa: E402
+from proto.fatigue import FatigueModel                            # noqa: E402
+from proto.foresight import whatif                                # noqa: E402
 from proto.legality import evaluate                                # noqa: E402
 from proto.recovery import generate                                # noqa: E402
 from proto.report import emit_html, emit_json, snapshot            # noqa: E402
@@ -100,6 +104,30 @@ def main():
               f"score={p['score']:<5} ok={p['legality_ok']} — {p['note']}")
     print("  outcome:", outcome)
 
+    # ---- what-if: do nothing vs. action plan --------------------------------
+    wf = whatif(w, engine, proposals, FatigueModel())
+    dn, pl = wf["do_nothing"], wf["plan"]
+    print("\n=== WHAT-IF (do nothing vs. action plan) ===")
+    print(f"  do nothing: violations={dn['violations']} at-risk={dn['at_risk']} "
+          f"uncovered={dn['uncovered']} | fatigue mean={dn['fatigue']['mean']} "
+          f"high={dn['fatigue']['high']}")
+    print(f"  plan:       violations={pl['violations']} at-risk={pl['at_risk']} "
+          f"uncovered={pl['uncovered']} | fatigue mean={pl['fatigue']['mean']} "
+          f"high={pl['fatigue']['high']} (deltas {wf['deltas']})")
+    print("  top fatigue crews after plan:",
+          [(r['crew_id'], r['index'], r['level']) for r in pl['fatigue']['top'][:5]])
+
+    # ---- feed-contract export (dogfood: the demo world must conform) --------
+    payload = to_contract_json(w)
+    problems = validate_contract(payload)
+    with open(os.path.join(args.out, "contract_sample.json"), "w") as fh:
+        json.dump(payload, fh, indent=2)
+    print("\nfeed-contract sample written to",
+          os.path.join(args.out, "contract_sample.json"),
+          f"({len(payload['flights'])} flights, {len(payload['crews'])} crews, "
+          f"{len(payload['pairings'])} pairings) — "
+          f"{'VALID' if not problems else problems}")
+
     # ---- emit reports -----------------------------------------------------
     os.makedirs(args.out, exist_ok=True)
     emit_json(os.path.join(args.out, "report.json"),
@@ -108,10 +136,10 @@ def main():
                         "delayed_flights": [f.id for f in targets]},
                "baseline": base_snap,
                "disrupted": {**dis_snap, "proposals": proposals,
-                             "recovery_outcome": outcome}})
+                             "recovery_outcome": outcome, "whatif": wf}})
     emit_html(os.path.join(args.out, "report_baseline.html"), "baseline", base_snap)
     emit_html(os.path.join(args.out, "report_disrupted.html"), "disrupted", dis_snap,
-              proposals=proposals)
+              proposals=proposals, whatif=wf)
     print("\nreports written under", os.path.abspath(args.out),
           "(report.json, report_baseline.html, report_disrupted.html)")
 
