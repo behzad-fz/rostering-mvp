@@ -18,7 +18,8 @@ stdlib-only prototype of the disruption-recovery wedge.
 cd rostering-mvp
 python3 run_demo.py                # FAR 117 regime, disruption + recovery
 python3 run_demo.py --regime EASA-FTL --delay-min 180
-python3 -m unittest discover -s . -p 'test_*.py'   # 31 tests
+python3 bench.py                   # 46-case benchmark / sensitivity sweep
+python3 -m unittest discover -s . -p 'test_*.py'   # 35 tests
 ```
 
 Open `rostering-mvp/out/report_disrupted.html` for the dashboard.
@@ -39,6 +40,9 @@ Open `rostering-mvp/out/report_disrupted.html` for the dashboard.
 - **What-if / fatigue + feed contract**: a scenario evaluator compares
   "do nothing vs. the action plan" (legality, coverage, fatigue), and a
   versioned feed contract is dogfooded by the demo export.
+- **Benchmark / sensitivity suite** (`rostering-mvp/bench.py`): a 46-case
+  sweep across delay size, burst, target mode, and cancellations — every case
+  fully closed (0 uncovered, 0 violations), worst-case recovery ~0.5 s.
 
 ## Status & roadmap
 
@@ -46,6 +50,7 @@ Open `rostering-mvp/out/report_disrupted.html` for the dashboard.
 - Phase 1 (recourse generation) — done (greedy, superseded by Phase 2)
 - Phase 2 (exact picker, pairing surgery, relief, deadhead) — done (prototype-grade)
 - Exact FAR 117 Table B/C rule pack, what-if/fatigue, feed contract — done
+- Benchmark / sensitivity suite (46-case grid, 100% closure, ≤0.5 s/case) — done
 - Next: EASA Annex III per-duty scheme, a real CBA rule pack, licensed fatigue
   model integration, OR-Tools/Gurobi at scale. See `rostering-mvp/README.md`.
 

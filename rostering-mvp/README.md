@@ -40,7 +40,8 @@ python3 run_demo.py --regime EASA-FTL --delay-min 180
 python3 run_demo.py --days 7 --seed 42
 ```
 
-Tests (31 across `test_rules.py` + `test_recovery.py` + `test_extras.py`):
+Tests (35 across `test_rules.py` + `test_recovery.py` + `test_extras.py` +
+`test_bench.py`):
 
 ```sh
 python3 -m unittest discover -s . -p 'test_*.py'
@@ -88,14 +89,39 @@ debrief buffers (60 / 15 min), the company flight-time guardrail
 (`co.ft-per-fdp` — *not* a FAR 117 limit), EASA duty accumulators, and the
 EASA Annex III per-duty FDP scheme (the FAR 117 table is a placeholder there).
 
+## Benchmark & sensitivity (`bench.py`)
+
+```sh
+python3 bench.py            # 46-case grid (~10 s): bank delays up to 12 h,
+                            # targeted legality-critical stress, double-cancel
+python3 bench.py --quick    # smoke grid (~3 s)
+python3 bench.py --single --delay 480 --burst 8   # one case
+```
+
+**Results (this build):** 46/46 cases fully closed — do-nothing damage spans up
+to **38 uncovered flights / 10 violating crews** (12-hour SFO bank delays); the
+action plan takes every case to **0 uncovered, 0 violations** using
+reserve/swap/surgery/release. Mean runtime **213 ms**, worst **530 ms** (was
+7.6 s before the picker node-cap: extreme states cap the search at 250 k nodes
+and still close 100% — flagged as `picker.capped`). Outputs:
+`out/bench_results.json` + `out/bench_report.html`.
+
+**Two findings the sweep surfaced:** (1) the day-trip world has enough slack
+that delays up to ~5 h rarely breach legality — legality pressure only appears
+under 8-12 h slides or when a delay extends a *specific* crew's duty end;
+(2) recovery cost grows with damage size (the DFS picker's search tree), which
+is the argument for the OR-Tools/Gurobi swap at production scale.
+
 ## Layout
 
 ```
 rostering-mvp/
   run_demo.py            # end-to-end demo runner
+  bench.py               # benchmark / sensitivity sweep (46-case grid)
   test_rules.py          # rule-engine unit tests
   test_recovery.py       # recovery (picker/surgery/relief/deadhead) tests
   test_extras.py         # fatigue / what-if / contract tests
+  test_bench.py          # benchmark harness tests
   contract/
     README.md            # feed-adapters data contract (v1.0 draft)
   proto/

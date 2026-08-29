@@ -149,6 +149,11 @@ def build_gap_candidates(w: World, engine: RuleEngine, checks: Dict[str, CrewChe
                                    "note": (f"deadhead {c.id} ({c.base} -> "
                                             f"{f0.origin}, ~{travel} min travel)")})
         candidates.sort(key=lambda x: (x["score"], x["crew_id"]))
+        MAX_CANDIDATES_PER_GAP = 14
+        if len(candidates) > MAX_CANDIDATES_PER_GAP:
+            # branching cap: keep the best-scored candidates (deadhead pools
+            # can be 20+ crews and would explode the picker's search tree)
+            candidates = candidates[:MAX_CANDIDATES_PER_GAP]
         out.append({"pid": pid, "flight_desc": describe_pairing(w, pid),
                     "base": f0.origin, "day": f0.day, "group": group,
                     "broken": broken, "orig": orig, "candidates": candidates})
@@ -156,10 +161,12 @@ def build_gap_candidates(w: World, engine: RuleEngine, checks: Dict[str, CrewChe
 
 
 # ------------------------------------------------------------- exact picker
-def solve_picker(gaps: List[dict]):
+def solve_picker(gaps: List[dict], max_nodes: int = 250_000):
     """Exact selection: one action per gap (or none), each crew used at most
     once. Maximizes covered gaps (GAP_VALUE per gap) and then minimizes action
-    score. Deterministic DFS with a best-case bound; tiny instances here."""
+    score. Deterministic DFS with a best-case bound and a node cap so a
+    massive-disruption state degrades gracefully: past the cap it returns the
+    best plan found so far (still fully legal), flagged with 'capped'."""
     n = len(gaps)
     best_each = [max([GAP_VALUE - c["score"] for c in g["candidates"]] or [0.0])
                  for g in gaps]
@@ -169,10 +176,16 @@ def solve_picker(gaps: List[dict]):
     sel: List[Optional[dict]] = [None] * n
     cur_val = 0.0
     explored = 0
+    stopped = False
 
     def dfs(i: int):
-        nonlocal best_val, cur_val, explored
+        nonlocal best_val, cur_val, explored, stopped
+        if stopped:
+            return
         explored += 1
+        if explored > max_nodes:
+            stopped = True
+            return
         if i == n:
             if cur_val > best_val:
                 best_val = cur_val
@@ -199,7 +212,7 @@ def solve_picker(gaps: List[dict]):
     dfs(0)
     covered = sum(1 for c in best_sel if c is not None)
     return best_sel, {"covered": covered, "value": round(best_val, 1),
-                      "explored_nodes": explored}
+                      "explored_nodes": explored, "capped": stopped}
 
 
 # ------------------------------------------------------------ pairing surgery
