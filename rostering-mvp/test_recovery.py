@@ -12,6 +12,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from proto.disrupt import apply_delay                       # noqa: E402
 from proto.legality import evaluate                 # noqa: E402
 from proto.model import Crew, Flight, Pairing, World  # noqa: E402
 from proto.recovery import generate, measure        # noqa: E402
@@ -168,6 +169,49 @@ class TestDeadhead(unittest.TestCase):
         checks = evaluate(w, eng)
         proposals, _ = generate(w, eng, checks)
         self.assertNotIn("deadhead", [p["kind"] for p in proposals])
+
+
+class TestCancel(unittest.TestCase):
+    """When no legal crewing option exists (not even a split), the engine
+    must say so explicitly and recommend cancellation."""
+
+    def _world(self):
+        w = World()
+        f1 = Flight("F1", 0, hm(0, 3, 0), hm(0, 20, 0), "A", "B")   # 17 h single leg
+        w.flights += [f1]
+        w.pairings.append(Pairing("PA1", ["F1"]))
+        w.crews = [Crew("P-A-0", "A", "P"), Crew("P-A-1", "A", "P")]
+        w.assignments = [("P-A-0", "PA1")]
+        w.reserves = {0: []}
+        w.index()
+        return w
+
+    def test_cancel_recommended_when_no_legal_option(self):
+        w = self._world()
+        eng = RuleEngine("FAR117")
+        checks = evaluate(w, eng)
+        self.assertEqual(checks["P-A-0"].worst, "violation")
+        proposals, outcome = generate(w, eng, checks)
+        cancels = [p for p in proposals if p["kind"] == "cancel"]
+        self.assertEqual(len(cancels), 1, proposals)
+        self.assertEqual(outcome["after_uncovered_non_cancelled"], 0)
+
+
+class TestSurgeryFirst(unittest.TestCase):
+    """Surgery-requiring gaps must claim crews before the picker runs,
+    otherwise a later gap's surgery can be starved of takers."""
+
+    def test_surgery_first_prevents_crew_starvation(self):
+        w = build_world(days=7, seed=42)
+        eng = RuleEngine("FAR117")
+        ids = [w.pairing("X-long-2").flight_ids[-1],
+               w.pairing("Y-long-3").flight_ids[-1]]
+        apply_delay(w, ids, 240)
+        proposals, outcome = generate(w, eng, evaluate(w, eng))
+        surgeries = [p for p in proposals if p["kind"] == "surgery"]
+        self.assertGreaterEqual(len(surgeries), 2, proposals)
+        self.assertEqual(outcome["after_uncovered_non_cancelled"], 0)
+        self.assertEqual(outcome["after_violations"], 0)
 
 
 if __name__ == "__main__":

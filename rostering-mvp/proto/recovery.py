@@ -43,9 +43,18 @@ def _no_overlap(duties) -> bool:
     return True
 
 
+def _atk(margin) -> float:
+    """Small score penalty for at-risk (legal but tight) margins, so fully-ok
+    takers are preferred while legal-but-tight takers remain usable."""
+    if margin is None:
+        return 0.0
+    return max(0.0, (60.0 - margin) / 10.0)
+
+
 def _crew_can_take(w: World, engine: RuleEngine, cid: str, pid: str):
-    """Would crew cid remain fully legal after taking pairing pid on top of
-    their existing schedule? Returns (ok, margin_after)."""
+    """Would crew cid remain LEGAL after taking pairing pid on top of their
+    existing schedule? Legality = no violations; at-risk (legal but tight,
+    margin < 60) is permitted and surfaced. Returns (ok, margin_after)."""
     p = w.pairing(pid)
     duties = list(build_duties(w).get(cid, [])) + [pairing_duty(w, p, cid)]
     if not _no_overlap(duties):
@@ -54,9 +63,9 @@ def _crew_can_take(w: World, engine: RuleEngine, cid: str, pid: str):
     if crew is None:
         return False, None
     cc = engine.check(crew, duties)
-    if cc.ok:
-        return True, None
-    return False, cc.min_margin
+    if cc.worst == "violation":
+        return False, cc.min_margin
+    return True, (cc.min_margin if cc.worst == "at_risk" else None)
 
 
 def _deadhead_valid(w: World, engine: RuleEngine, cid: str, pid: str):
@@ -75,9 +84,9 @@ def _deadhead_valid(w: World, engine: RuleEngine, cid: str, pid: str):
     if not _no_overlap(duties):
         return False, None, DEADHEAD_TRAVEL_MIN
     cc = engine.check(_crew(w, cid), duties)
-    if cc.ok:
-        return True, None, DEADHEAD_TRAVEL_MIN
-    return False, cc.min_margin, DEADHEAD_TRAVEL_MIN
+    if cc.worst == "violation":
+        return False, cc.min_margin, DEADHEAD_TRAVEL_MIN
+    return True, (cc.min_margin if cc.worst == "at_risk" else None), DEADHEAD_TRAVEL_MIN
 
 
 def describe_pairing(w: World, pid: str) -> str:
@@ -120,7 +129,7 @@ def build_gap_candidates(w: World, engine: RuleEngine, checks: Dict[str, CrewChe
             ok, margin = _crew_can_take(w, engine, cid, pid)
             if ok:
                 candidates.append({"kind": "reserve", "crew_id": cid,
-                                   "score": 10.0, "legality_ok": True,
+                                   "score": 10.0 + _atk(margin), "legality_ok": True,
                                    "margin_after": margin,
                                    "note": "reserve callout"})
         # crew swaps (same base/group, not broken, not on reserve)
@@ -132,7 +141,7 @@ def build_gap_candidates(w: World, engine: RuleEngine, checks: Dict[str, CrewChe
             ok, margin = _crew_can_take(w, engine, c.id, pid)
             if ok:
                 candidates.append({"kind": "swap", "crew_id": c.id,
-                                   "score": 20.0 + c.seniority * 0.1,
+                                   "score": 20.0 + c.seniority * 0.1 + _atk(margin),
                                    "legality_ok": True, "margin_after": margin,
                                    "note": "crew swap"})
         # deadhead / reposition (last resort — other-base crews, priced by
@@ -143,7 +152,8 @@ def build_gap_candidates(w: World, engine: RuleEngine, checks: Dict[str, CrewChe
             ok, margin, travel = _deadhead_valid(w, engine, c.id, pid)
             if ok:
                 candidates.append({"kind": "deadhead", "crew_id": c.id,
-                                   "score": 40.0 + travel / 60.0 + c.seniority * 0.1,
+                                   "score": 40.0 + travel / 60.0
+                                   + c.seniority * 0.1 + _atk(margin),
                                    "legality_ok": True, "margin_after": margin,
                                    "travel_min": travel,
                                    "note": (f"deadhead {c.id} ({c.base} -> "
@@ -161,18 +171,20 @@ def build_gap_candidates(w: World, engine: RuleEngine, checks: Dict[str, CrewChe
 
 
 # ------------------------------------------------------------- exact picker
-def solve_picker(gaps: List[dict], max_nodes: int = 250_000):
+def solve_picker(gaps: List[dict], max_nodes: int = 250_000,
+                 used_init: Optional[set] = None):
     """Exact selection: one action per gap (or none), each crew used at most
     once. Maximizes covered gaps (GAP_VALUE per gap) and then minimizes action
     score. Deterministic DFS with a best-case bound and a node cap so a
     massive-disruption state degrades gracefully: past the cap it returns the
-    best plan found so far (still fully legal), flagged with 'capped'."""
+    best plan found so far (still fully legal), flagged with 'capped'.
+    used_init reserves crews already claimed (e.g. by surgery takers)."""
     n = len(gaps)
     best_each = [max([GAP_VALUE - c["score"] for c in g["candidates"]] or [0.0])
                  for g in gaps]
     best_sel: List[Optional[dict]] = [None] * n
     best_val = -1.0
-    used: set = set()
+    used: set = set(used_init or ())
     sel: List[Optional[dict]] = [None] * n
     cur_val = 0.0
     explored = 0
@@ -281,6 +293,12 @@ def find_surgery(w: World, engine: RuleEngine, gap: dict, checks: Dict[str, Crew
             busted = sum(1 for c in after.values() if c.worst == "violation")
             if busted > before_violations:
                 continue
+            if broken is not None and after[broken].worst == "violation":
+                # the split must actually HEAL the broken crew (the 'no new
+                # violations' bound alone would accept a prefix that keeps
+                # them over their own limit, e.g. when a delayed leg slides
+                # into the prefix)
+                continue
             return {
                 "kind": "surgery", "pairing_id": pid, "split_index": k,
                 "prefix_id": pre, "suffix_id": suf, "crew_id": cid,
@@ -296,15 +314,37 @@ def find_surgery(w: World, engine: RuleEngine, gap: dict, checks: Dict[str, Crew
 
 # ---------------------------------------------------------------- proposals
 def generate(w: World, engine: RuleEngine, checks: Dict[str, CrewCheck]):
-    """Proposals for the current (disrupted) state: exact picker over the
-    candidate pool, surgery fallback for unfixable gaps, then advisories."""
+    """Proposals for the current (disrupted) state: gaps with no single-crew
+    candidate are resolved FIRST (surgery, so their takers get first claim on
+    the crew pool — otherwise a later gap's surgery can starve them), then the
+    exact picker over the remaining candidate pool, then relief + advisories.
+    Gaps with no legal option at all get an explicit `cancel` recommendation
+    instead of a silent advisory."""
     gaps = build_gap_candidates(w, engine, checks)
-    sel, picker_stats = solve_picker(gaps)
-
     proposals: List[dict] = []
     used: set = set()
-    for i, gap in enumerate(gaps):
-        cand = sel[i]
+
+    rest_gaps: List[dict] = []
+    for gap in gaps:
+        if gap["candidates"]:
+            rest_gaps.append(gap)
+            continue
+        surgery = find_surgery(w, engine, gap, checks, used)
+        if surgery:
+            used.add(surgery["crew_id"])
+            proposals.append(surgery)
+        else:
+            proposals.append({
+                "kind": "cancel", "pairing_id": gap["pid"],
+                "flight_desc": gap["flight_desc"], "crew_id": None,
+                "original_crew": gap["orig"],
+                "score": 60.0, "legality_ok": True,
+                "note": ("no legal crewing option (pairing exceeds FDP limits "
+                         "for every crew and no legal split exists) — "
+                         "recommend cancellation or re-time")})
+
+    sel, picker_stats = solve_picker(rest_gaps, used_init=used)
+    for gap, cand in zip(rest_gaps, sel):
         if cand is not None:
             d = dict(cand)
             d.update({"pairing_id": gap["pid"], "flight_desc": gap["flight_desc"],
@@ -313,19 +353,12 @@ def generate(w: World, engine: RuleEngine, checks: Dict[str, CrewCheck]):
             used.add(d["crew_id"])
             proposals.append(d)
         else:
-            surgery = find_surgery(w, engine, gap, checks, used)
-            if surgery:
-                used.add(surgery["crew_id"])
-                proposals.append(surgery)
-            else:
-                proposals.append({
-                    "kind": "advisory", "pairing_id": gap["pid"],
-                    "flight_desc": gap["flight_desc"], "crew_id": None,
-                    "original_crew": gap["orig"], "score": 0.0,
-                    "legality_ok": True,
-                    "note": ("no legal action found (pairing itself exceeds "
-                             "FDP limits and no legal split/single-crew option "
-                             "exists) — manual re-time needed")})
+            proposals.append({
+                "kind": "advisory", "pairing_id": gap["pid"],
+                "flight_desc": gap["flight_desc"], "crew_id": None,
+                "original_crew": gap["orig"], "score": 0.0,
+                "legality_ok": True,
+                "note": "gap left for manual handling (crew pool exhausted for this pairing)"})
 
     # --- secondary relief: close remaining violations by offloading duties ---
     reliefs = secondary_relief(w, engine, checks, proposals, used)
@@ -390,7 +423,10 @@ def secondary_relief(w: World, engine: RuleEngine, checks: Dict[str, CrewCheck],
                                if not (a[0] == cid and a[1] == pid)]
             chk3r = evaluate(w3r, engine)
             others = sorted(c2 for c2, p2 in w3r.assignments if p2 == pid)
-            if chk3r[cid].worst != "violation" and \
+            # release-without-replacement is only allowed while the pairing
+            # stays staffed by someone else — a crewless pairing would be
+            # silently uncovered (fall through to re-crew in that case)
+            if others and chk3r[cid].worst != "violation" and \
                     not ({cc for cc, c3 in chk3r.items() if c3.worst == "violation"}
                          - before_broken):
                 reliefs.append({
@@ -400,7 +436,7 @@ def secondary_relief(w: World, engine: RuleEngine, checks: Dict[str, CrewCheck],
                     "original_crew": cid, "broken_crew": cid,
                     "score": 12.0, "legality_ok": True, "margin_after": None,
                     "note": (f"relieve {cid}: released from {pid} "
-                             f"(pairing keeps {', '.join(others) or 'no other crew — needs manual cover'})"),
+                             f"(pairing keeps {', '.join(others)})"),
                 })
                 used.add(cid)
                 break
@@ -461,6 +497,12 @@ def _apply(w2: World, p: dict) -> None:
                                   and (broken is None or a[0] == broken))]
         if p.get("crew_id"):
             w2.assignments.append((p["crew_id"], p["pairing_id"]))
+    elif p["kind"] == "cancel":
+        for fid in w2.pairing(p["pairing_id"]).flight_ids:
+            f = w2.flight(fid)
+            if not f.cancelled:
+                f.cancelled = True
+                f.delay = 0
     elif p["kind"] == "surgery":
         pid = p["pairing_id"]
         pair = next(pp for pp in w2.pairings if pp.id == pid)
@@ -484,14 +526,14 @@ def measure(w: World, engine: RuleEngine, proposals: List[dict]) -> dict:
     before = _counts(w, engine)
     applied = 0
     for p in proposals:
-        if p["kind"] not in ("reserve", "swap", "surgery", "relieve", "deadhead"):
+        if p["kind"] not in ("reserve", "swap", "surgery", "relieve", "deadhead", "cancel"):
             continue
         if not p.get("legality_ok"):
             continue
         if p["kind"] == "relieve":
             if not (p.get("crew_id") or p.get("relieved_crew")):
                 continue
-        elif not p.get("crew_id"):
+        elif p["kind"] != "cancel" and not p.get("crew_id"):
             continue
         _apply(w2, p)
         applied += 1

@@ -39,12 +39,15 @@ def uncovered_flights(w: World, checks: Dict[str, CrewCheck]) -> List[Tuple[obje
     for cid, pid in w.assignments:
         crews_of_pairing[pid].append(cid)
     for p in w.pairings:
-        broken = [cid for cid in crews_of_pairing.get(p.id, [])
+        crew_ids = crews_of_pairing.get(p.id, [])
+        broken = [cid for cid in crew_ids
                   if checks.get(cid) and checks[cid].worst == "violation"]
         for fid in p.flight_ids:
             f = w.flight(fid)
             if f.cancelled:
                 out.append((f, "cancelled"))
+            elif not crew_ids:
+                out.append((f, "no crew assigned"))
             elif broken:
                 out.append((f, f"crew {', '.join(broken)} legality broken"))
     return out

@@ -11,12 +11,12 @@ Q&A. Bullets are lines to say out loud, not slides to read.
 - Open ahead of time, on your machine:
   - `rostering-mvp/out/report_disrupted.html` — the full dashboard (risk radar,
     recovery proposals, what-if section)
-  - `rostering-mvp/out/bench_report.html` — the 46-case benchmark table
+  - `rostering-mvp/out/bench_report.html` — the 48-case benchmark table
 - Have ready to run live (each prints in seconds): `python3 run_demo.py`,
   `python3 bench.py --quick`
 - Write three numbers on a card — you will quote them repeatedly:
-  **46/46 · 0.5 s · 3 → 0** (scenarios closed, worst-case recovery time,
-  violations before → after).
+  **48/48 · ~0.9 s · 3 → 0** (scenarios closed on coverage, worst-case recovery
+  time incl. the 14-day scale-up runs, demo violations before → after).
 
 ---
 
@@ -155,7 +155,7 @@ Phase 0 data feeds + shadow run: 4 weeks from data access.
 ## Presentation tips
 
 - **One metric per slide.** If you feel you're overloading, drop to the card
-  numbers (46/46 · 0.5 s · 3 → 0).
+  numbers (48/48 · ~0.9 s · 3 → 0).
 - **Demo live if possible** — the whole loop prints in ~15 s. If the network
   fails, the pre-opened HTML files are the fallback; never rely on live
   generation alone.

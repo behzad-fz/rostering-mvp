@@ -167,7 +167,6 @@ def _inject_issues(w: World) -> World:
     #    delay: the 150-min slide moves it into the 0500-0559 band (12 h limit)
     #    with the duty still over ~13 h.
     day = 2
-    f0 = w.flights  # rebuild a custom pairing
     segs = [
         (day, 4, 0, "SFO", "LAX", 95),
         (day, 6, 15, "LAX", "SEA", 165),

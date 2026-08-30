@@ -40,7 +40,7 @@ python3 run_demo.py --regime EASA-FTL --delay-min 180
 python3 run_demo.py --days 7 --seed 42
 ```
 
-Tests (40 across `test_rules.py` + `test_recovery.py` + `test_extras.py` +
+Tests (47 across `test_rules.py` + `test_recovery.py` + `test_extras.py` +
 `test_bench.py`):
 
 ```sh
@@ -97,27 +97,30 @@ should surface:
 | EASA per-duty FDP | **exact Annex III Table 2** (max daily FDP, acclimatised — Reg (EU) 83/2014) |
 
 **Remaining simplifications (flagged in code):** minimum-rest variants (the
-10 h standard is modeled; FAR 117.25 reduced-rest conditions are not), report &
-debrief buffers (60 / 15 min), the company flight-time guardrail
-(`co.ft-per-fdp` — *not* a FAR 117 limit), EASA duty accumulators, and the
-EASA Annex III Tables 3/4 (unknown acclimatisation / FRM) plus the extension
+10 h standard modeled; FAR 117.25 reduced-rest and EASA away-from-base ≥10 h /
+36 h recovery-rest / reduced-rest schemes not modeled), report & debrief
+buffers (60 / 15 min), the company flight-time guardrail
+(`co.ft-per-fdp` — *not* a FAR 117 limit), and the EASA Annex III extension
 schemes (+1 h twice per 7 days, in-flight rest, split duty).
 
 ## Benchmark & sensitivity (`bench.py`)
 
 ```sh
-python3 bench.py            # 46-case grid (~10 s): bank delays up to 12 h,
+python3 bench.py            # 48-case grid (~12 s): bank delays up to 12 h,
                             # targeted legality-critical stress, double-cancel
 python3 bench.py --quick    # smoke grid (~3 s)
 python3 bench.py --single --delay 480 --burst 8   # one case
 ```
 
-**Results (this build):** 46/46 cases fully closed — do-nothing damage spans up
-to **38 uncovered flights / 10 violating crews** (12-hour SFO bank delays); the
-action plan takes every case to **0 uncovered, 0 violations** using
-reserve/swap/surgery/release. Mean runtime **213 ms**, worst **530 ms** (was
-7.6 s before the picker node-cap: extreme states cap the search at 250 k nodes
-and still close 100% — flagged as `picker.capped`). Outputs:
+**Results (this build):** coverage closed in **48/48** scenarios (0 uncovered —
+do-nothing damage spans up to **38 uncovered flights / 10 violating crews**
+under 12-hour delays) and **46/48** end at **0 violations**. The two most
+extreme cases (12 h delays sliding LAX legs through the critical pairing) keep
+one crew-legality exposure and the engine **explicitly recommends
+cancellation** rather than an illegal fix. At-risk (legal but tight) takers
+are permitted and surfaced by margin — violations are never proposed. Mean
+runtime **244 ms**, worst **~0.9 s** (14-day horizon; extreme states cap the
+picker search at 250 k nodes, flagged `picker.capped`). Outputs:
 `out/bench_results.json` + `out/bench_report.html`.
 
 **Two findings the sweep surfaced:** (1) the day-trip world has enough slack
@@ -131,7 +134,7 @@ is the argument for the OR-Tools/Gurobi swap at production scale.
 ```
 rostering-mvp/
   run_demo.py            # end-to-end demo runner
-  bench.py               # benchmark / sensitivity sweep (46-case grid)
+  bench.py               # benchmark / sensitivity sweep (48-case grid)
   test_rules.py          # rule-engine unit tests
   test_recovery.py       # recovery (picker/surgery/relief/deadhead) tests
   test_extras.py         # fatigue / what-if / contract tests
@@ -191,9 +194,10 @@ rostering-mvp/
   adapters have a concrete target to match.
 
 **Next:**
-- **EASA Annex III per-duty scheme** — encode from EUR-Lex when access is
-  restored (bot-blocked last attempt); currently a documented flat 13 h
-  placeholder. The verified EASA *cumulative* limits are already exact.
+- **EASA Annex III extension schemes** — +1 h twice per 7 days, in-flight
+  rest, split duty, away-from-base/reduced-rest and 36 h recovery-rest
+  variants. Tables 2/3/4 and the 60/110/190 h duty accumulators are already
+  exact from the official regulation PDF (committed under `docs/`).
 - **A real CBA rule pack** (seniority, custom bidding credits, reserve rules)
   as a versioned, regression-tested constraint pack.
 - **Licensed fatigue model integration** and **OR-Tools/Gurobi** for the

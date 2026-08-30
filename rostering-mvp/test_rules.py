@@ -128,6 +128,14 @@ class TestEasaTable(unittest.TestCase):
         self.assertEqual(self.eng.fdp_limit_min(hm(0, 8, 0), 9), 570)    # 09:30
         self.assertEqual(self.eng.fdp_limit_min(hm(0, 8, 0), 12), 540)   # capped at 10+
 
+    def test_unknown_acclimatisation_tables(self):
+        # Annex III Tables 3/4 (unknown acclimatisation, optional FRM)
+        self.assertEqual(self.eng.fdp_limit_min(hm(0, 9, 0), 2, acclimated=False), 660)
+        self.assertEqual(self.eng.fdp_limit_min(hm(0, 9, 0), 3, acclimated=False), 630)
+        self.assertEqual(self.eng.fdp_limit_min(hm(0, 9, 0), 12, acclimated=False), 540)
+        self.assertEqual(self.eng.fdp_limit_min(hm(0, 9, 0), 2, acclimated=False, frm=True), 720)
+        self.assertEqual(self.eng.fdp_limit_min(hm(0, 9, 0), 4, acclimated=False, frm=True), 660)
+
     def test_evening_and_midnight_wrap(self):
         self.assertEqual(self.eng.fdp_limit_min(hm(0, 18, 0), 2), 660)   # 17:00-04:59 band
         self.assertEqual(self.eng.fdp_limit_min(hm(0, 23, 0), 3), 630)   # 10:30
@@ -154,6 +162,15 @@ class TestEasa(unittest.TestCase):
         c = Crew("CREW-Y", "SFO", "P", hist_flight_365d=899 * 60)
         cc = eng.check(c, [duty("CREW-Y", 0, 8, 0, 12, 0, 2, 120)])  # +2h -> 901h
         self.assertIn("EASA-FTL.ft-year", [v.rule_id for v in cc.violations])
+
+    def test_14d_duty_cap(self):
+        eng = RuleEngine("EASA-FTL")
+        bad = Crew("CREW-14", "SFO", "P", hist_duty_336h=109 * 60)
+        cc = eng.check(bad, [duty("CREW-14", 0, 8, 0, 11, 0, 2, 150)])   # +3h -> 112h
+        self.assertIn("EASA-FTL.duty-336h", [v.rule_id for v in cc.violations])
+        ok = Crew("CREW-14B", "SFO", "P", hist_duty_336h=106 * 60)
+        cc2 = eng.check(ok, [duty("CREW-14B", 0, 8, 0, 11, 0, 2, 150)])  # 109h < 110h
+        self.assertTrue(cc2.ok, cc2.violations)
 
     def test_28d_cap(self):
         eng = RuleEngine("EASA-FTL")

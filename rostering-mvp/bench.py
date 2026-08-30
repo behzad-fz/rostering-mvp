@@ -34,7 +34,7 @@ from proto.recovery import generate                               # noqa: E402
 from proto.rules import RuleEngine                                # noqa: E402
 from proto.schedule_gen import build_world                        # noqa: E402
 
-EXECUTABLE = ("reserve", "swap", "surgery", "relieve", "deadhead")
+EXECUTABLE = ("reserve", "swap", "surgery", "relieve", "deadhead", "cancel")
 
 
 # ------------------------------------------------------------- disruption
@@ -47,9 +47,9 @@ def pick_burst(w, base: str, day: int, burst: int, min_hour: int = 5,
 
 
 def run_case(regime: str, mode: str, delay: int, base: str, day: int,
-             burst: int, cancels: int, seed: int = 42) -> dict:
+             burst: int, cancels: int, days: int = 7) -> dict:
     t0 = time.perf_counter()
-    w = build_world(days=7, seed=seed)
+    w = build_world(days=days)
     engine = RuleEngine(regime)
 
     if delay > 0:
@@ -82,10 +82,11 @@ def run_case(regime: str, mode: str, delay: int, base: str, day: int,
 
     def slim(s):
         return {"violations": s["violations"], "at_risk": s["at_risk"],
-                "uncovered": s["uncovered"], "fatigue_mean": s["fatigue"]["mean"]}
+                "uncovered": s["uncovered"], "fatigue_mean": s["fatigue"]["mean"],
+                "cancellations": s.get("cancellations", 0)}
 
     return {
-        "case": f"{regime}/{mode}/{base}/D{day}/d{delay}/b{burst}/x{cancels}",
+        "case": f"{regime}/{mode}/{base}/D{day}/d{delay}/b{burst}/x{cancels}/w{days}",
         "regime": regime, "mode": mode, "base": base, "day": day,
         "delay_min": delay, "burst": burst, "cancels": cancels,
         "do_nothing": slim(dn), "plan": slim(pl),
@@ -119,6 +120,9 @@ def build_grid(quick: bool = False):
         for delay in ([60, 180] if quick else [30, 60, 120, 240]):
             grid.append((regime, "targeted", delay, "SFO", 2, 0, 1))
         grid.append((regime, "bank", 300, "LAX", 2, 8, 2))         # double-cancel
+        # scale-up: 14-day horizons on the legality-critical day
+        grid.append((regime, "bank", 300, "SFO", 2, 8, 1, 14))
+        grid.append((regime, "bank", 480, "LAX", 4, 8, 1, 14))
     return grid
 
 
@@ -192,10 +196,13 @@ th {{ background:#161b22; color:#8b949e; font-size:10px; text-transform:uppercas
 <th>Closure</th><th>Actions</th><th>Reserve share</th><th>Gaps covered</th><th>ms</th></tr>
 {table}
 </table>
-<div class="note"><b>Setup.</b> Deterministic synthetic 7-day world (seed 42); disruption = delay
-<code>burst</code> flights of <code>base</code> on <code>day</code> by <code>delay_min</code> (rotation slide),
-plus <code>cancels</code> cancellations. Do-nothing (DN) vs. legality-validated action plan. Rules:
-exact FAR 117 (eCFR). Toy fatigue model. Runtimes include world build + full recovery + what-if.</div>
+<div class="note"><b>Setup.</b> Deterministic synthetic world (7 days; two scale-up cases run 14-day
+horizons — note the <code>w14</code> suffix). Disruption = delay <code>burst</code> flights of
+<code>base</code> on <code>day</code> by <code>delay_min</code> (rotation slide), plus <code>cancels</code>
+cancellations. Do-nothing (DN) vs. legality-validated action plan (violations forbidden;
+at-risk takers permitted and surfaced). Rules: exact FAR 117 (eCFR). Toy fatigue model.
+Cases where no legal crewing option exists recommend cancellation (counted in the JSON).
+Runtimes include world build + full recovery + what-if.</div>
 </body></html>"""
     with open(os.path.join(out_dir, "bench_report.html"), "w") as fh:
         fh.write(doc)

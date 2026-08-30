@@ -77,6 +77,12 @@ EASA_TABLE2 = [
     (_minof(5, 45),  _minof(5, 59),  [765, 735, 705, 675, 645, 615, 585, 555, 540]),
 ]
 
+# EASA Annex III Tables 3/4 — maximum daily FDP, crew members in an UNKNOWN
+# state of acclimatisation (Table 4 applies when the operator has an FRM).
+# Flat across start times; 7 sector columns (1-2, 3, 4, 5, 6, 7, 8+).
+EASA_TABLE3 = [660, 630, 600, 570, 540, 540, 540]   # 11:00 .. 09:00
+EASA_TABLE4 = [720, 690, 660, 630, 600, 570, 540]   # 12:00 .. 09:00 (FRM)
+
 FAR117_PARAMS = {
     "regime": "FAR117",
     "ft_672h": 100 * HOUR,
@@ -95,9 +101,10 @@ EASA_PARAMS = {
     "ft_28d": 100 * HOUR,
     "ft_year": 900 * HOUR,
     "ft_12mo": 1000 * HOUR,
-    "duty_168h": 60 * HOUR,   # approximation
-    "duty_672h": 190 * HOUR,  # approximation
-    "rest_min": 12 * HOUR,
+    "duty_168h": 60 * HOUR,    # verified ORO.FTL.210: 60 h / 7 consecutive days
+    "duty_336h": 110 * HOUR,   # verified ORO.FTL.210: 110 h / 14 consecutive days
+    "duty_672h": 190 * HOUR,   # verified ORO.FTL.210: 190 h / 28 consecutive days
+    "rest_min": 12 * HOUR,     # verified ORO.FTL.235(a): >= 12 h at home base
     "report_buffer": 60,
     "debrief_buffer": 15,
     "ft_per_fdp": 8 * HOUR,
@@ -153,9 +160,15 @@ class RuleEngine:
     # ------------------------------------------------------------------ FDP
     def fdp_limit_min(self, start_mod_1440: int, segments: int,
                       augmented: bool = False, acclimated: bool = True,
-                      aug_class: int = 1, aug_pilots: int = 3) -> int:
+                      aug_class: int = 1, aug_pilots: int = 3,
+                      frm: bool = False) -> int:
         """FAR 117 / EASA per-duty FDP limit in minutes."""
         if self.name == "EASA-FTL":
+            if not acclimated:
+                # Annex III Tables 3/4 (unknown acclimatisation, optional FRM)
+                row = EASA_TABLE4 if frm else EASA_TABLE3
+                idx = 0 if segments <= 2 else min(segments, 8) - 2
+                return row[idx]
             # Annex III Table 2 — exact (Regulation (EU) 83/2014).
             start = start_mod_1440 % DAY
             row = EASA_TABLE2[0][2]
@@ -165,12 +178,7 @@ class RuleEngine:
                     row = vals
                     break
             idx = 0 if segments <= 2 else min(segments, 10) - 2
-            val = row[idx] / HOUR
-            if not acclimated:
-                # Table 3 (unknown acclimatisation) — conservative 11 h cap;
-                # the full sector gradient of Tables 3/4 is pending encoding
-                val = min(val, 11.0)
-            return int(round(val * HOUR))
+            return row[idx]
         hour = (start_mod_1440 % DAY) // 60
         if augmented:
             row = TABLE_C[0]
@@ -265,6 +273,14 @@ class RuleEngine:
                      f"duty {du // 60}h vs 168h limit {self.p['duty_168h'] // 60}h")
         if v:
             cc.violations.append(v)
+
+        if self.name == "EASA-FTL":
+            du14 = cc.total_duty_min + crew.hist_duty_336h
+            v = self._mk("EASA-FTL.duty-336h",
+                         self.p["duty_336h"] - du14,
+                         f"duty {du14 // 60}h vs 336h limit {self.p['duty_336h'] // 60}h")
+            if v:
+                cc.violations.append(v)
 
         du28 = cc.total_duty_min + crew.hist_duty_672h
         v = self._mk(f"{self.name}.duty-672h",

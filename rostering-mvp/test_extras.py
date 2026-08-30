@@ -12,8 +12,9 @@ from proto.contract import to_contract_json, validate_contract    # noqa: E402
 from proto.fatigue import FatigueModel                            # noqa: E402
 from proto.foresight import scenario, whatif                      # noqa: E402
 from proto.legality import evaluate                               # noqa: E402
-from proto.model import Crew, DutyEvent                           # noqa: E402
+from proto.model import Crew, DutyEvent, Flight, Pairing, World   # noqa: E402
 from proto.recovery import generate                               # noqa: E402
+from proto.risk import uncovered_flights                           # noqa: E402
 from proto.rules import RuleEngine                                # noqa: E402
 from proto.schedule_gen import build_world                        # noqa: E402
 from proto.timeutil import hm                                     # noqa: E402
@@ -64,7 +65,7 @@ class TestWhatif(unittest.TestCase):
         self.assertLess(wf["deltas"]["violations"], 0)
         self.assertLess(wf["deltas"]["uncovered"], 0)
         self.assertGreaterEqual(wf["plan"]["applied"], 6)
-        self.assertGreaterEqual(wf["plan"]["reserve_callouts"], 4)
+        self.assertGreaterEqual(wf["plan"]["reserve_callouts"], 2)
 
     def test_do_nothing_equals_current_state(self):
         wf = whatif(self.w, self.eng, self.proposals)
@@ -78,6 +79,14 @@ class TestWhatif(unittest.TestCase):
         for key in ("mean", "max", "elevated", "high", "top"):
             self.assertIn(key, fat)
         self.assertIn("level", fat["top"][0])
+
+    def test_measure_and_whatif_agree(self):
+        # the two application paths (recovery.measure and foresight.scenario)
+        # must count the SAME outcome for the same plan
+        proposals, outcome = generate(self.w, self.eng, self.checks)
+        wf = whatif(self.w, self.eng, proposals)
+        self.assertEqual(wf["plan"]["violations"], outcome["after_violations"])
+        self.assertEqual(wf["plan"]["uncovered"], outcome["after_uncovered_non_cancelled"])
 
 
 class TestContract(unittest.TestCase):
@@ -100,6 +109,32 @@ class TestContract(unittest.TestCase):
                     generate(self.w, RuleEngine("FAR117"),
                              evaluate(self.w, RuleEngine("FAR117")))[0])
         self.assertIn("plan", wf)
+
+
+class TestNoCrew(unittest.TestCase):
+    """An unstaffed pairing must surface as 'no crew assigned' and be
+    closable by recovery (reserve callout)."""
+
+    def _world(self):
+        w = World()
+        f1 = Flight("F1", 0, hm(0, 9, 0), hm(0, 10, 35), "A", "B")
+        f2 = Flight("F2", 0, hm(0, 11, 15), hm(0, 12, 50), "B", "A")
+        w.flights += [f1, f2]
+        w.pairings.append(Pairing("PA1", ["F1", "F2"]))
+        w.crews = [Crew("P-A-0", "A", "P"), Crew("P-A-1", "A", "P")]
+        w.assignments = []                       # nobody on PA1
+        w.reserves = {0: ["P-A-1"]}
+        w.index()
+        return w
+
+    def test_crewless_pairing_flagged_and_fixed(self):
+        w = self._world()
+        eng = RuleEngine("FAR117")
+        un = uncovered_flights(w, evaluate(w, eng))
+        self.assertTrue(any(r == "no crew assigned" for f, r in un), un)
+        proposals, outcome = generate(w, eng, evaluate(w, eng))
+        self.assertTrue(any(p["kind"] == "reserve" for p in proposals), proposals)
+        self.assertEqual(outcome["after_uncovered_non_cancelled"], 0)
 
 
 if __name__ == "__main__":

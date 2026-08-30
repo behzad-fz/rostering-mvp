@@ -50,11 +50,14 @@
   augmented) plus cumulative limits (100 h/672 h, 1,000 h/365 d, 60 h/168 h,
   190 h/672 h) — fetched from eCFR (14 CFR part 117, 2025-01-01), verified in
   this project's research, and locked by unit tests.
-- **EASA FTL:** cumulative limits exact (100 h/28 d, 900 h/yr, 1,000 h/12 mo);
-  the Annex III *per-duty* scheme is a documented placeholder pending primary-
-  source encoding (EUR-Lex was bot-blocked from our sandbox).
+- **EASA FTL:** cumulative flight-time limits exact (100 h/28 d, 900 h/yr,
+  1,000 h/12 mo); **Annex III Table 2 (per-duty FDP) exact**, plus Tables 3/4
+  (unknown acclimatisation / FRM) and the duty accumulators (60 h/7 d ·
+  110 h/14 d · 190 h/28 d) — all encoded from the official regulation PDF,
+  committed under `rostering-mvp/docs/`.
 - **Explicit simplifications (flagged in code, not hidden):** minimum-rest
-  variants (10 h standard modeled; FAR 117.25 reduced-rest conditions not),
+  variants (10 h standard modeled; FAR 117.25 reduced-rest, EASA away-from-
+  base ≥10 h rest + 36 h recovery rest and reduced-rest schemes not modeled),
   report/debrief buffers (60/15 min), a company flight-time guardrail
   (`co.ft-per-fdp`, explicitly *not* a FAR 117 limit).
 - **Rule-pack governance:** versioned rule packs per jurisdiction/contract,
@@ -67,16 +70,20 @@
   before it is proposed:** reserve callout (10) → crew swap (20) → deadhead /
   reposition with travel-cost model (40 + travel/60) → **pairing surgery**
   (split an over-long duty at leg N: the broken crew keeps a legal prefix, a
-  fresh crew takes the suffix) → **knock-on relief** (release a still-broken
-  crew when the pairing is already covered; otherwise re-crew with a legal
-  taker).
+  fresh crew takes the suffix — validated to actually *heal* the crew) →
+  **knock-on relief** (release a still-broken crew only while the pairing
+  stays staffed; otherwise re-crew with a legal taker) → **explicit `cancel`
+  recommendation** when no legal crewing option exists at all (12 h delays).
+  Legality = no violations; **at-risk (legal but tight) takers are permitted
+  and surfaced with margins** — never hidden.
 - **Selection:** an exact CP-style picker (one action per gap, each crew used
-  at most once, maximizing covered gaps then minimizing cost). Deterministic
-  branch-and-bound with a **node cap (250 k) and per-gap candidate cap (14)**
-  so mass-disruption states degrade gracefully — capped runs still closed
-  100% of scenarios; flagged `picker.capped`.
+  at most once, maximizing covered gaps then minimizing cost). Surgery-
+  requiring gaps claim crews FIRST (taker starvation is impossible).
+  Deterministic branch-and-bound with a **node cap (250 k) and per-gap
+  candidate cap (14)** so mass-disruption states degrade gracefully — capped
+  runs still close coverage fully; flagged `picker.capped`.
 - **Complexity note:** pure-Python DFS is prototype-grade; production swaps in
-  OR-Tools/Gurobi at the same interface (the benchmark quantifies why: 16 M
+  OR-Tools/Gurobi at the same interface (the benchmark quantified why: 16 M
   DFS nodes / 7.5 s before the cap → ≤0.5 s after).
 
 ## 5. What-if & fatigue
@@ -91,9 +98,10 @@
 
 | Metric | Value |
 |---|---|
-| Full pipeline (world → radar → recovery → what-if), mean | **213 ms** |
-| Worst case (12 h mass delay, 38 uncovered / 10 violations) | **529 ms** |
-| Scenarios fully closed (46-case grid) | **46/46** (0 uncovered, 0 violations) |
+| Full pipeline (world → radar → recovery → what-if), mean | **244 ms** |
+| Worst case (12 h mass delay, 14-day horizon, 38+ uncovered / 10+ violations) | **~0.9 s** |
+| Coverage closed (48-scenario grid incl. 14-day scale-ups) | **48/48 → 0 uncovered** |
+| Violation-free plans | **46/48** (the 2 most extreme 12 h-delay cases keep one crew exposure and explicitly recommend cancellation) |
 | Legality validation per candidate | microseconds (batch) |
 | Determinism | same inputs → same outputs (node cap may trade optimality for time, never legality) |
 

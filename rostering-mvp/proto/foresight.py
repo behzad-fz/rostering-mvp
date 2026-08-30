@@ -14,7 +14,7 @@ from .recovery import _apply
 from .risk import uncovered_flights
 from .rules import RuleEngine
 
-EXECUTABLE = ("reserve", "swap", "surgery", "relieve", "deadhead")
+EXECUTABLE = ("reserve", "swap", "surgery", "relieve", "deadhead", "cancel")
 
 
 def scenario(w: World, engine: RuleEngine, plan: Optional[List[dict]] = None,
@@ -28,7 +28,7 @@ def scenario(w: World, engine: RuleEngine, plan: Optional[List[dict]] = None,
                 continue
             if p["kind"] == "relieve" and not (p.get("crew_id") or p.get("relieved_crew")):
                 continue
-            if p["kind"] != "relieve" and not p.get("crew_id"):
+            if p["kind"] != "relieve" and p["kind"] != "cancel" and not p.get("crew_id"):
                 continue
             _apply(w2, p)
             applied += 1
@@ -41,6 +41,9 @@ def scenario(w: World, engine: RuleEngine, plan: Optional[List[dict]] = None,
         "at_risk": sum(1 for c in checks.values() if c.worst == "at_risk"),
         "uncovered": len([f for f, r in un if not f.cancelled]),
         "reserve_callouts": sum(1 for p in (plan or []) if p.get("kind") == "reserve"),
+        "cancellations": sum(len(w2.pairing(p["pairing_id"]).flight_ids)
+                             for p in (plan or [])
+                             if p.get("kind") == "cancel" and p.get("legality_ok")),
     }
     if fatigue is not None:
         duties = build_duties(w2)

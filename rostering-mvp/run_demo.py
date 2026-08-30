@@ -29,7 +29,7 @@ from proto.report import emit_html, emit_json, snapshot            # noqa: E402
 from proto.risk import rank_crews, uncovered_flights               # noqa: E402
 from proto.rules import AT_RISK_MIN, RuleEngine                    # noqa: E402
 from proto.schedule_gen import build_world                         # noqa: E402
-from proto.timeutil import hms, tod                               # noqa: E402
+from proto.timeutil import tod                               # noqa: E402
 
 
 def pick_targets(w, day: int, origin: str, max_hour: int):

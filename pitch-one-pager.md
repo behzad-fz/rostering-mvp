@@ -25,11 +25,11 @@
 
 A stdlib-only Python demo (`rostering-mvp/`) covering the full loop: synthetic airline → legality engine → disruption → risk radar → recovery → what-if.
 
-- **Legality engine on the exact rules** — FAR 117 per-duty Tables B/C + cumulative limits **fetched from eCFR**, EASA FTL cumulative limits from EUR-Lex; remaining simplifications explicitly flagged. The rule pack is the moat: versioned, regression-tested, jurisdiction/contract-switchable.
+- **Legality engine on the exact rules** — FAR 117 per-duty Tables B/C + cumulative limits **fetched from eCFR**; EASA Annex III Tables 2/3/4 + verified duty accumulators (60/110/190 h) **from the official regulation PDF**; simplifications explicitly flagged. The rule pack is the moat: versioned, regression-tested, jurisdiction/contract-switchable.
 - **Risk radar** — legality-broken crews with margins, uncovered flights, reserve gaps.
-- **Recovery action ladder — every proposal legality-validated**: reserve → swap → deadhead (cost-modeled) → pairing surgery (split an over-long duty) → knock-on relief. The engine **refuses to "fix" anything illegally** and explains itself on every row.
+- **Recovery action ladder — every proposal legality-validated**: reserve → swap → deadhead (cost-modeled) → pairing surgery (split an over-long duty) → knock-on relief → explicit cancellation recommendation when no legal crewing option exists. Legal-but-tight (at-risk) takers are permitted and surfaced with margins — **violations are never proposed**.
 - **What-if** — "do nothing vs. this plan" for legality, coverage, and fatigue before any action is committed.
-- **Benchmark (46 scenarios):** do-nothing damage up to **38 uncovered flights / 10 violating crews** under 12-hour hub disruptions; the plan closes **46/46 cases to 0 uncovered, 0 violations**; worst-case recovery time **530 ms**.
+- **Benchmark (48 scenarios, incl. 14-day scale-ups):** do-nothing damage up to **38 uncovered flights / 10 violating crews** under 12-hour hub disruptions; the plan closes **coverage in all 48** (0 uncovered) and is **violation-free in 46**; the two most extreme 12 h-delay cases explicitly recommend cancellation; worst-case recovery **≤0.9 s**.
 
 ## The moat
 
@@ -57,4 +57,4 @@ A stdlib-only Python demo (`rostering-mvp/`) covering the full loop: synthetic a
 
 ---
 
-*Repo: research report (`airline-rostering-research.md`), architecture blueprint (`recovery-engine-architecture.md`), working prototype with 35 tests (`rostering-mvp/`; `python3 run_demo.py`) — all committed and reproducible.*
+*Repo: research report (`airline-rostering-research.md`), architecture blueprint (`recovery-engine-architecture.md`), working prototype with 47 tests (`rostering-mvp/`; `python3 run_demo.py`) — all committed, CI'd, and reproducible.*

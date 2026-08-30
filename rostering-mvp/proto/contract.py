@@ -28,7 +28,9 @@ def to_contract_json(w: World) -> Dict[str, Any]:
         ],
         "crews": [
             {"id": c.id, "base": c.base, "group": c.group, "seniority": c.seniority,
-             "hist_flight_672h": c.hist_flight_672h, "hist_duty_168h": c.hist_duty_168h}
+             "hist_flight_672h": c.hist_flight_672h, "hist_flight_365d": c.hist_flight_365d,
+             "hist_duty_168h": c.hist_duty_168h, "hist_duty_336h": c.hist_duty_336h,
+             "hist_duty_672h": c.hist_duty_672h}
             for c in w.crews
         ],
         "pairings": [
