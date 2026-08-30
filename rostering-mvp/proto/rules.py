@@ -9,11 +9,15 @@ VERIFIED from primary sources (fetched this session):
     - minimum rest: 10 h (FAR 117.25; reduced-rest variants not modeled)
   EASA FTL (Reg (EU) No 83/2014, EUR-Lex CELEX 32014R0083):
     - flight time:  100 h / 28 consecutive days; 900 h / calendar year; 1,000 h / 12 months
+    - per-duty FDP: Annex III Table 2 (maximum daily FDP, acclimatised) —
+                    exact values encoded below
 
 Remaining simplifications (flagged):
-  - EASA's own Annex III per-duty FDP scheme is NOT encoded — the FAR 117
-    table is used as a placeholder for the EASA-FTL regime
-  - report (60 min) & debrief (15 min) buffers; EASA duty accumulators
+  - EASA unknown-acclimatisation tables (Annex III Tables 3/4 under FRM) and
+    the extension schemes (+1 h twice per 7 days, in-flight rest, split duty,
+    cabin-crew reporting-time difference) are not yet encoded
+  - EASA duty accumulators (60 h / 168 h, 190 h / 672 h) are approximations
+  - report (60 min) & debrief (15 min) buffers
   - 'co.ft-per-fdp': a company flight-time guardrail (8 h / 9 h augmented) —
     this is NOT a FAR 117 limit; FAR 117 governs duty via Table B/C
 """
@@ -51,6 +55,28 @@ TABLE_C = [
     (17, 23, {1: (15.0, 17.0), 2: (14.0, 15.5), 3: (13.0, 13.5)}),
 ]
 
+# EASA FTL Annex III, Table 2 — Maximum daily FDP (acclimatised crew), from
+# Regulation (EU) No 83/2014 (EUR-Lex PDF, extracted this build).
+# Rows: (start_min, end_min, [FDP minutes for sectors 1-2, 3, 4, 5, 6, 7, 8, 9, 10])
+def _minof(h: int, m: int) -> int:
+    return h * 60 + m
+
+EASA_TABLE2 = [
+    (_minof(6, 0),  _minof(13, 29), [780, 750, 720, 690, 660, 630, 600, 570, 540]),
+    (_minof(13, 30), _minof(13, 59), [765, 735, 705, 675, 645, 615, 585, 555, 540]),
+    (_minof(14, 0),  _minof(14, 29), [750, 720, 690, 660, 630, 600, 570, 540, 540]),
+    (_minof(14, 30), _minof(14, 59), [735, 705, 675, 645, 615, 585, 555, 540, 540]),
+    (_minof(15, 0),  _minof(15, 29), [720, 690, 660, 630, 600, 570, 540, 540, 540]),
+    (_minof(15, 30), _minof(15, 59), [705, 675, 645, 615, 585, 555, 540, 540, 540]),
+    (_minof(16, 0),  _minof(16, 29), [690, 660, 630, 600, 570, 540, 540, 540, 540]),
+    (_minof(16, 30), _minof(16, 59), [675, 645, 615, 585, 555, 540, 540, 540, 540]),
+    (_minof(17, 0),  _minof(4, 59),  [660, 630, 600, 570, 540, 540, 540, 540, 540]),  # wraps midnight
+    (_minof(5, 0),   _minof(5, 14),  [720, 690, 660, 630, 600, 570, 540, 540, 540]),
+    (_minof(5, 15),  _minof(5, 29),  [735, 705, 675, 645, 615, 585, 555, 540, 540]),
+    (_minof(5, 30),  _minof(5, 44),  [750, 720, 690, 660, 630, 600, 570, 540, 540]),
+    (_minof(5, 45),  _minof(5, 59),  [765, 735, 705, 675, 645, 615, 585, 555, 540]),
+]
+
 FAR117_PARAMS = {
     "regime": "FAR117",
     "ft_672h": 100 * HOUR,
@@ -72,7 +98,6 @@ EASA_PARAMS = {
     "duty_168h": 60 * HOUR,   # approximation
     "duty_672h": 190 * HOUR,  # approximation
     "rest_min": 12 * HOUR,
-    "fdp_max_h": 13.0,        # Annex III placeholder (see fdp_limit_min)
     "report_buffer": 60,
     "debrief_buffer": 15,
     "ft_per_fdp": 8 * HOUR,
@@ -131,13 +156,20 @@ class RuleEngine:
                       aug_class: int = 1, aug_pilots: int = 3) -> int:
         """FAR 117 / EASA per-duty FDP limit in minutes."""
         if self.name == "EASA-FTL":
-            # Annex III encoding pending (EUR-Lex bot-blocked on last attempt).
-            # Placeholder: basic daily FDP 13 h; the start-time/sector
-            # gradient and augmented extensions must be encoded from the
-            # regulation text when access is restored.
-            val = float(self.p.get("fdp_max_h", 13.0))
+            # Annex III Table 2 — exact (Regulation (EU) 83/2014).
+            start = start_mod_1440 % DAY
+            row = EASA_TABLE2[0][2]
+            for s0, s1, vals in EASA_TABLE2:
+                hit = (s0 <= start <= s1) if s0 <= s1 else (start >= s0 or start <= s1)
+                if hit:
+                    row = vals
+                    break
+            idx = 0 if segments <= 2 else min(segments, 10) - 2
+            val = row[idx] / HOUR
             if not acclimated:
-                val -= 0.5
+                # Table 3 (unknown acclimatisation) — conservative 11 h cap;
+                # the full sector gradient of Tables 3/4 is pending encoding
+                val = min(val, 11.0)
             return int(round(val * HOUR))
         hour = (start_mod_1440 % DAY) // 60
         if augmented:

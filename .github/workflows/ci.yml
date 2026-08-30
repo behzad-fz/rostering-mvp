@@ -1,0 +1,32 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Unit tests (both regimes)
+        run: |
+          cd rostering-mvp
+          python -m unittest discover -s . -p 'test_*.py' -v
+      - name: Benchmark smoke grid
+        run: |
+          cd rostering-mvp
+          python bench.py --quick
+      - name: Install package + CLI smoke
+        run: |
+          cd rostering-mvp
+          python -m pip install .
+          rostering-demo --help
+          rostering-bench --help

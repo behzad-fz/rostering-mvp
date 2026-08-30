@@ -22,7 +22,7 @@ cd rostering-mvp
 python3 run_demo.py                # FAR 117 regime, disruption + recovery
 python3 run_demo.py --regime EASA-FTL --delay-min 180
 python3 bench.py                   # 46-case benchmark / sensitivity sweep
-python3 -m unittest discover -s . -p 'test_*.py'   # 35 tests
+python3 -m unittest discover -s . -p 'test_*.py'   # 40 tests
 ```
 
 Open `rostering-mvp/out/report_disrupted.html` for the dashboard.
@@ -30,9 +30,10 @@ Open `rostering-mvp/out/report_disrupted.html` for the dashboard.
 ## What the prototype demonstrates
 
 - A **legality engine** over verified FAR 117 / EASA FTL limits — including
-  the **exact FAR 117 Table B/C per-duty FDP tables** (fetched from eCFR);
-  remaining simplifications (rest variants, EASA Annex III per-duty scheme,
-  buffers, company flight-time guardrail) are flagged in code.
+  the **exact FAR 117 Table B/C** (fetched from eCFR) and the **exact EASA
+  Annex III Table 2** (from the official regulation PDF); remaining
+  simplifications (rest variants, EASA Tables 3/4 + extensions, buffers,
+  company flight-time guardrail) are flagged in code.
 - A **risk radar**: ranked at-risk crews, rule findings with margins,
   uncovered flights, reserve gaps.
 - **Recovery that respects legality**: an exact picker over the candidate
@@ -54,8 +55,11 @@ Open `rostering-mvp/out/report_disrupted.html` for the dashboard.
 - Phase 2 (exact picker, pairing surgery, relief, deadhead) — done (prototype-grade)
 - Exact FAR 117 Table B/C rule pack, what-if/fatigue, feed contract — done
 - Benchmark / sensitivity suite (46-case grid, 100% closure, ≤0.5 s/case) — done
-- Next: EASA Annex III per-duty scheme, a real CBA rule pack, licensed fatigue
-  model integration, OR-Tools/Gurobi at scale. See `rostering-mvp/README.md`.
+- Exact EASA Annex III Table 2 (max daily FDP) — done (official PDF committed
+  under `rostering-mvp/docs/`)
+- CI + packaging (`pyproject.toml`, GitHub Actions workflow, `scripts/check.sh`) — done
+- Next: EASA Tables 3/4 + extension schemes, a real CBA rule pack, licensed
+  fatigue model integration, OR-Tools/Gurobi at scale. See `rostering-mvp/README.md`.
 
 ## License
 

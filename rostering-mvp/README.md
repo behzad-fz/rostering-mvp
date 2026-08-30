@@ -40,12 +40,24 @@ python3 run_demo.py --regime EASA-FTL --delay-min 180
 python3 run_demo.py --days 7 --seed 42
 ```
 
-Tests (35 across `test_rules.py` + `test_recovery.py` + `test_extras.py` +
+Tests (40 across `test_rules.py` + `test_recovery.py` + `test_extras.py` +
 `test_bench.py`):
 
 ```sh
 python3 -m unittest discover -s . -p 'test_*.py'
 ```
+
+## Packaging & CI
+
+- `pyproject.toml` — installable (`pip install -e .` → `rostering-demo` and
+  `rostering-bench` console commands). License is **proprietary / unlicensed**
+  until you choose one.
+- `.github/workflows/ci.yml` (repo root) — Python 3.9 + 3.12: unit tests,
+  benchmark smoke grid, install + CLI smoke, on every push/PR.
+- `../scripts/check.sh` — the same checks locally without pip.
+- `docs/` — committed legal sources for provenance: the official Regulation
+  (EU) 83/2014 PDFs (EUR-Lex OJ + TXT export) and the extracted Annex III
+  text used for the EASA Table 2 encoding.
 
 ## What you'll see
 
@@ -82,12 +94,14 @@ should surface:
 | FAR 117 duty | 60 h / 168 h · 190 h / 672 h |
 | FAR 117 per-duty FDP | **exact Table B/C** (eCFR, version 2025-01-01) |
 | EASA FTL flight time | 100 h / 28 d · 900 h / year · 1,000 h / 12 mo |
+| EASA per-duty FDP | **exact Annex III Table 2** (max daily FDP, acclimatised — Reg (EU) 83/2014) |
 
 **Remaining simplifications (flagged in code):** minimum-rest variants (the
 10 h standard is modeled; FAR 117.25 reduced-rest conditions are not), report &
 debrief buffers (60 / 15 min), the company flight-time guardrail
 (`co.ft-per-fdp` — *not* a FAR 117 limit), EASA duty accumulators, and the
-EASA Annex III per-duty FDP scheme (the FAR 117 table is a placeholder there).
+EASA Annex III Tables 3/4 (unknown acclimatisation / FRM) plus the extension
+schemes (+1 h twice per 7 days, in-flight rest, split duty).
 
 ## Benchmark & sensitivity (`bench.py`)
 

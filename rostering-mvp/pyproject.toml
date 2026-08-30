@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rostering-mvp"
+version = "0.1.0"
+description = "Legality-first disruption recovery for airline crew scheduling (prototype)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Proprietary — no license granted" }
+authors = [{ name = "Crew Recovery Project" }]
+
+[tool.setuptools]
+packages = ["proto"]
+py-modules = ["run_demo", "bench"]
+
+[project.scripts]
+rostering-demo = "run_demo:main"
+rostering-bench = "bench:main"

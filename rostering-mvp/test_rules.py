@@ -113,6 +113,41 @@ class TestExactTables(unittest.TestCase):
             self.limit(8, 0, 2) - 30)
 
 
+class TestEasaTable(unittest.TestCase):
+    """EASA FTL Annex III Table 2 (max daily FDP, acclimatised) — values from
+    the official Regulation (EU) 83/2014 PDF (EUR-Lex), extracted this build."""
+
+    def setUp(self):
+        self.eng = RuleEngine("EASA-FTL")
+
+    def test_peak_band(self):
+        # 06:00-13:29 start
+        self.assertEqual(self.eng.fdp_limit_min(hm(0, 8, 0), 2), 780)    # 13:00
+        self.assertEqual(self.eng.fdp_limit_min(hm(0, 8, 0), 3), 750)    # 12:30
+        self.assertEqual(self.eng.fdp_limit_min(hm(0, 8, 0), 5), 690)    # 11:30
+        self.assertEqual(self.eng.fdp_limit_min(hm(0, 8, 0), 9), 570)    # 09:30
+        self.assertEqual(self.eng.fdp_limit_min(hm(0, 8, 0), 12), 540)   # capped at 10+
+
+    def test_evening_and_midnight_wrap(self):
+        self.assertEqual(self.eng.fdp_limit_min(hm(0, 18, 0), 2), 660)   # 17:00-04:59 band
+        self.assertEqual(self.eng.fdp_limit_min(hm(0, 23, 0), 3), 630)   # 10:30
+        self.assertEqual(self.eng.fdp_limit_min(hm(0, 2, 0), 4), 600)    # 10:00 (wrap row)
+
+    def test_early_morning_subbands(self):
+        self.assertEqual(self.eng.fdp_limit_min(hm(0, 5, 10), 2), 720)   # 12:00
+        self.assertEqual(self.eng.fdp_limit_min(hm(0, 5, 20), 3), 705)   # 11:45
+        self.assertEqual(self.eng.fdp_limit_min(hm(0, 5, 50), 2), 765)   # 12:45
+
+    def test_mid_afternoon(self):
+        self.assertEqual(self.eng.fdp_limit_min(hm(0, 14, 45), 3), 705)  # 11:45
+
+    def test_easa_legal_crew(self):
+        c = Crew("CREW-EASA", "SFO", "P")
+        cc = self.eng.check(c, [duty("CREW-EASA", 0, 6, 0, 17, 15, 3, 380)])
+        v = next((v for v in cc.violations if v.rule_id == "EASA-FTL.fdp-per-duty"), None)
+        self.assertIsNone(v)   # duty 11h15 < 12h30 limit -> legal
+
+
 class TestEasa(unittest.TestCase):
     def test_year_cap(self):
         eng = RuleEngine("EASA-FTL")
