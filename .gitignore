@@ -7,3 +7,4 @@ __pycache__/
 
 # Generated demo outputs
 rostering-mvp/out/
+rostering-mvp/out_quick/
