@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Recovery Engine — Benchmark</title>
+<style>
+:root { color-scheme: dark; }
+body { font: 14px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; background:#0d1117; color:#e6edf3; margin:24px; }
+h1 { font-size:20px; } h2 { font-size:15px; margin-top:26px; border-bottom:1px solid #21262d; padding-bottom:6px; }
+.cards { display:flex; gap:12px; flex-wrap:wrap; margin:14px 0; }
+.card { background:#161b22; border:1px solid #21262d; border-radius:10px; padding:12px 18px; text-align:center; }
+.card .num { font-size:22px; font-weight:700; } .card .lab { color:#8b949e; font-size:11px; }
+table { border-collapse:collapse; width:100%; font-size:12px; margin:8px 0; }
+th, td { border:1px solid #21262d; padding:5px 8px; text-align:left; }
+th { background:#161b22; color:#8b949e; font-size:10px; text-transform:uppercase; }
+.b-ok td:first-child { color:#3fb950; } .b-bad td:first-child { color:#f85149; }
+.note { background:#121d2f; border:1px solid #1f3a5f; border-radius:8px; padding:10px 14px; font-size:12px; color:#8fb7e8; margin-top:20px; }
+</style></head><body>
+<h1>Disruption Recovery Engine — Benchmark &amp; Sensitivity</h1>
+<div class="cards"><div class="card"><div class="num">30</div><div class="lab">Cases</div></div><div class="card"><div class="num">100.0%</div><div class="lab">Mean closure</div></div><div class="card"><div class="num">518 → 0</div><div class="lab">Uncovered before/after</div></div><div class="card"><div class="num">260</div><div class="lab">Total actions</div></div><div class="card"><div class="num">208.5 ms</div><div class="lab">Mean runtime</div></div></div>
+<h2>Cases (regime / base / day / delay / burst / cancels)</h2>
+<table>
+<tr><th>Case</th><th>DN viol</th><th>DN uncov</th><th>Plan viol</th><th>Plan uncov</th>
+<th>Closure</th><th>Actions</th><th>Reserve share</th><th>Gaps covered</th><th>ms</th></tr>
+<tr class="b-ok"><td>FAR117/bank/SFO/D2/d0/b0/x0/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>165.1</td></tr>
+<tr class="b-ok"><td>FAR117/bank/SFO/D2/d90/b3/x1/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>164.6</td></tr>
+<tr class="b-ok"><td>FAR117/bank/SFO/D2/d90/b6/x1/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>164.3</td></tr>
+<tr class="b-ok"><td>FAR117/bank/SFO/D2/d180/b3/x1/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>164.4</td></tr>
+<tr class="b-ok"><td>FAR117/bank/SFO/D2/d180/b6/x1/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>164.8</td></tr>
+<tr class="b-ok"><td>FAR117/bank/SFO/D2/d300/b3/x1/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>164.4</td></tr>
+<tr class="b-ok"><td>FAR117/bank/SFO/D2/d300/b6/x1/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>165.3</td></tr>
+<tr class="b-ok"><td>FAR117/bank/SFO/D4/d90/b3/x1/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>164.7</td></tr>
+<tr class="b-ok"><td>FAR117/bank/SFO/D4/d90/b6/x1/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>164.5</td></tr>
+<tr class="b-ok"><td>FAR117/bank/SFO/D4/d180/b3/x1/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>165.2</td></tr>
+<tr class="b-ok"><td>FAR117/bank/SFO/D4/d180/b6/x1/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>164.6</td></tr>
+<tr class="b-ok"><td>FAR117/bank/SFO/D4/d300/b3/x1/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>165.1</td></tr>
+<tr class="b-ok"><td>FAR117/bank/SFO/D4/d300/b6/x1/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>164.7</td></tr>
+<tr class="b-ok"><td>FAR117/bank/LAX/D2/d90/b3/x1/w7</td><td>3</td><td>15</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>166.6</td></tr>
+<tr class="b-ok"><td>FAR117/bank/LAX/D2/d90/b6/x1/w7</td><td>3</td><td>15</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>167.7</td></tr>
+<tr class="b-ok"><td>FAR117/bank/LAX/D2/d180/b3/x1/w7</td><td>3</td><td>15</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>167.0</td></tr>
+<tr class="b-ok"><td>FAR117/bank/LAX/D2/d180/b6/x1/w7</td><td>3</td><td>15</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>166.4</td></tr>
+<tr class="b-ok"><td>FAR117/bank/LAX/D2/d300/b3/x1/w7</td><td>3</td><td>15</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>166.6</td></tr>
+<tr class="b-ok"><td>FAR117/bank/LAX/D2/d300/b6/x1/w7</td><td>3</td><td>15</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>166.7</td></tr>
+<tr class="b-ok"><td>FAR117/bank/LAX/D4/d90/b3/x1/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>164.5</td></tr>
+<tr class="b-ok"><td>FAR117/bank/LAX/D4/d90/b6/x1/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>164.6</td></tr>
+<tr class="b-ok"><td>FAR117/bank/LAX/D4/d180/b3/x1/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>164.3</td></tr>
+<tr class="b-ok"><td>FAR117/bank/LAX/D4/d180/b6/x1/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>165.1</td></tr>
+<tr class="b-ok"><td>FAR117/bank/LAX/D4/d300/b3/x1/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>164.9</td></tr>
+<tr class="b-ok"><td>FAR117/bank/LAX/D4/d300/b6/x1/w7</td><td>3</td><td>16</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>164.5</td></tr>
+<tr class="b-ok"><td>FAR117/targeted/SFO/D2/d60/b0/x1/w7</td><td>4</td><td>23</td><td>0</td><td>0</td><td>100.0%</td><td>11</td><td>18%</td><td>8</td><td>287.2</td></tr>
+<tr class="b-ok"><td>FAR117/targeted/SFO/D2/d180/b0/x1/w7</td><td>4</td><td>23</td><td>0</td><td>0</td><td>100.0%</td><td>11</td><td>18%</td><td>8</td><td>287.5</td></tr>
+<tr class="b-ok"><td>FAR117/bank/LAX/D2/d300/b8/x2/w7</td><td>3</td><td>15</td><td>0</td><td>0</td><td>100.0%</td><td>8</td><td>38%</td><td>6</td><td>166.7</td></tr>
+<tr class="b-ok"><td>FAR117/bank/SFO/D2/d300/b8/x1/w14</td><td>3</td><td>24</td><td>0</td><td>0</td><td>100.0%</td><td>11</td><td>27%</td><td>10</td><td>537.7</td></tr>
+<tr class="b-ok"><td>FAR117/bank/LAX/D4/d480/b8/x1/w14</td><td>7</td><td>39</td><td>0</td><td>0</td><td>100.0%</td><td>19</td><td>26%</td><td>16</td><td>844.2</td></tr>
+</table>
+<div class="note"><b>Setup.</b> Deterministic synthetic world (7 days; two scale-up cases run 14-day
+horizons — note the <code>w14</code> suffix). Disruption = delay <code>burst</code> flights of
+<code>base</code> on <code>day</code> by <code>delay_min</code> (rotation slide), plus <code>cancels</code>
+cancellations. Do-nothing (DN) vs. legality-validated action plan (violations forbidden;
+at-risk takers permitted and surfaced). Rules: exact FAR 117 (eCFR). Toy fatigue model.
+Cases where no legal crewing option exists recommend cancellation (counted in the JSON).
+Runtimes include world build + full recovery + what-if.</div>
+</body></html>

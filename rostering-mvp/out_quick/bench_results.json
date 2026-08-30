@@ -1,0 +1,1095 @@
+{
+  "summary": {
+    "cases": 30,
+    "mean_closure_pct": 100.0,
+    "median_closure_pct": 100.0,
+    "worst_uncovered_remaining": 0,
+    "total_uncovered_before": 518,
+    "total_uncovered_after": 0,
+    "total_actions": 260,
+    "mean_runtime_ms": 208.5,
+    "max_runtime_ms": 844.2
+  },
+  "results": [
+    {
+      "case": "FAR117/bank/SFO/D2/d0/b0/x0/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "SFO",
+      "day": 2,
+      "delay_min": 0,
+      "burst": 0,
+      "cancels": 0,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 16,
+        "fatigue_mean": 10.5,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.5,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4006,
+        "capped": false
+      },
+      "runtime_ms": 165.1
+    },
+    {
+      "case": "FAR117/bank/SFO/D2/d90/b3/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "SFO",
+      "day": 2,
+      "delay_min": 90,
+      "burst": 3,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 16,
+        "fatigue_mean": 10.5,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.5,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4006,
+        "capped": false
+      },
+      "runtime_ms": 164.6
+    },
+    {
+      "case": "FAR117/bank/SFO/D2/d90/b6/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "SFO",
+      "day": 2,
+      "delay_min": 90,
+      "burst": 6,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 16,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.5,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4006,
+        "capped": false
+      },
+      "runtime_ms": 164.3
+    },
+    {
+      "case": "FAR117/bank/SFO/D2/d180/b3/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "SFO",
+      "day": 2,
+      "delay_min": 180,
+      "burst": 3,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 16,
+        "fatigue_mean": 10.5,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.4,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4006,
+        "capped": false
+      },
+      "runtime_ms": 164.4
+    },
+    {
+      "case": "FAR117/bank/SFO/D2/d180/b6/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "SFO",
+      "day": 2,
+      "delay_min": 180,
+      "burst": 6,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 16,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4006,
+        "capped": false
+      },
+      "runtime_ms": 164.8
+    },
+    {
+      "case": "FAR117/bank/SFO/D2/d300/b3/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "SFO",
+      "day": 2,
+      "delay_min": 300,
+      "burst": 3,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 16,
+        "fatigue_mean": 10.4,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.4,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4006,
+        "capped": false
+      },
+      "runtime_ms": 164.4
+    },
+    {
+      "case": "FAR117/bank/SFO/D2/d300/b6/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "SFO",
+      "day": 2,
+      "delay_min": 300,
+      "burst": 6,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 16,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4006,
+        "capped": false
+      },
+      "runtime_ms": 165.3
+    },
+    {
+      "case": "FAR117/bank/SFO/D4/d90/b3/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "SFO",
+      "day": 4,
+      "delay_min": 90,
+      "burst": 3,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 16,
+        "fatigue_mean": 10.5,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.4,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4006,
+        "capped": false
+      },
+      "runtime_ms": 164.7
+    },
+    {
+      "case": "FAR117/bank/SFO/D4/d90/b6/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "SFO",
+      "day": 4,
+      "delay_min": 90,
+      "burst": 6,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 16,
+        "fatigue_mean": 10.5,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.4,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4006,
+        "capped": false
+      },
+      "runtime_ms": 164.5
+    },
+    {
+      "case": "FAR117/bank/SFO/D4/d180/b3/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "SFO",
+      "day": 4,
+      "delay_min": 180,
+      "burst": 3,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 16,
+        "fatigue_mean": 10.4,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.4,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4006,
+        "capped": false
+      },
+      "runtime_ms": 165.2
+    },
+    {
+      "case": "FAR117/bank/SFO/D4/d180/b6/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "SFO",
+      "day": 4,
+      "delay_min": 180,
+      "burst": 6,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 16,
+        "fatigue_mean": 10.4,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.4,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4006,
+        "capped": false
+      },
+      "runtime_ms": 164.6
+    },
+    {
+      "case": "FAR117/bank/SFO/D4/d300/b3/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "SFO",
+      "day": 4,
+      "delay_min": 300,
+      "burst": 3,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 16,
+        "fatigue_mean": 10.3,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.3,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4031,
+        "capped": false
+      },
+      "runtime_ms": 165.1
+    },
+    {
+      "case": "FAR117/bank/SFO/D4/d300/b6/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "SFO",
+      "day": 4,
+      "delay_min": 300,
+      "burst": 6,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 16,
+        "fatigue_mean": 10.3,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.3,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4031,
+        "capped": false
+      },
+      "runtime_ms": 164.7
+    },
+    {
+      "case": "FAR117/bank/LAX/D2/d90/b3/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "LAX",
+      "day": 2,
+      "delay_min": 90,
+      "burst": 3,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 15,
+        "fatigue_mean": 10.5,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.5,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 15,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 509.4,
+        "explored_nodes": 7667,
+        "capped": false
+      },
+      "runtime_ms": 166.6
+    },
+    {
+      "case": "FAR117/bank/LAX/D2/d90/b6/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "LAX",
+      "day": 2,
+      "delay_min": 90,
+      "burst": 6,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 15,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.5,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 15,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 509.4,
+        "explored_nodes": 7667,
+        "capped": false
+      },
+      "runtime_ms": 167.7
+    },
+    {
+      "case": "FAR117/bank/LAX/D2/d180/b3/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "LAX",
+      "day": 2,
+      "delay_min": 180,
+      "burst": 3,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 15,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.5,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 15,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 509.4,
+        "explored_nodes": 7920,
+        "capped": false
+      },
+      "runtime_ms": 167.0
+    },
+    {
+      "case": "FAR117/bank/LAX/D2/d180/b6/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "LAX",
+      "day": 2,
+      "delay_min": 180,
+      "burst": 6,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 15,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.5,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 15,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 509.4,
+        "explored_nodes": 7920,
+        "capped": false
+      },
+      "runtime_ms": 166.4
+    },
+    {
+      "case": "FAR117/bank/LAX/D2/d300/b3/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "LAX",
+      "day": 2,
+      "delay_min": 300,
+      "burst": 3,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 15,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.5,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 15,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 509.4,
+        "explored_nodes": 7920,
+        "capped": false
+      },
+      "runtime_ms": 166.6
+    },
+    {
+      "case": "FAR117/bank/LAX/D2/d300/b6/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "LAX",
+      "day": 2,
+      "delay_min": 300,
+      "burst": 6,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 15,
+        "fatigue_mean": 10.7,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 15,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 509.4,
+        "explored_nodes": 7920,
+        "capped": false
+      },
+      "runtime_ms": 166.7
+    },
+    {
+      "case": "FAR117/bank/LAX/D4/d90/b3/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "LAX",
+      "day": 4,
+      "delay_min": 90,
+      "burst": 3,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 16,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4006,
+        "capped": false
+      },
+      "runtime_ms": 164.5
+    },
+    {
+      "case": "FAR117/bank/LAX/D4/d90/b6/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "LAX",
+      "day": 4,
+      "delay_min": 90,
+      "burst": 6,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 16,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4006,
+        "capped": false
+      },
+      "runtime_ms": 164.6
+    },
+    {
+      "case": "FAR117/bank/LAX/D4/d180/b3/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "LAX",
+      "day": 4,
+      "delay_min": 180,
+      "burst": 3,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 16,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4006,
+        "capped": false
+      },
+      "runtime_ms": 164.3
+    },
+    {
+      "case": "FAR117/bank/LAX/D4/d180/b6/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "LAX",
+      "day": 4,
+      "delay_min": 180,
+      "burst": 6,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 16,
+        "fatigue_mean": 10.8,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.8,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4006,
+        "capped": false
+      },
+      "runtime_ms": 165.1
+    },
+    {
+      "case": "FAR117/bank/LAX/D4/d300/b3/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "LAX",
+      "day": 4,
+      "delay_min": 300,
+      "burst": 3,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 16,
+        "fatigue_mean": 10.7,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.7,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4006,
+        "capped": false
+      },
+      "runtime_ms": 164.9
+    },
+    {
+      "case": "FAR117/bank/LAX/D4/d300/b6/x1/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "LAX",
+      "day": 4,
+      "delay_min": 300,
+      "burst": 6,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 5,
+        "uncovered": 16,
+        "fatigue_mean": 11.0,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 6,
+        "uncovered": 0,
+        "fatigue_mean": 10.9,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 16,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 508.9,
+        "explored_nodes": 4006,
+        "capped": false
+      },
+      "runtime_ms": 164.5
+    },
+    {
+      "case": "FAR117/targeted/SFO/D2/d60/b0/x1/w7",
+      "regime": "FAR117",
+      "mode": "targeted",
+      "base": "SFO",
+      "day": 2,
+      "delay_min": 60,
+      "burst": 0,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 4,
+        "at_risk": 0,
+        "uncovered": 23,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 0,
+        "uncovered": 0,
+        "fatigue_mean": 10.5,
+        "cancellations": 0
+      },
+      "violations_closed": 4,
+      "uncovered_closed": 23,
+      "closure_pct": 100.0,
+      "actions": 11,
+      "reserve_share": 18.0,
+      "picker": {
+        "covered": 8,
+        "value": 635.1,
+        "explored_nodes": 119190,
+        "capped": false
+      },
+      "runtime_ms": 287.2
+    },
+    {
+      "case": "FAR117/targeted/SFO/D2/d180/b0/x1/w7",
+      "regime": "FAR117",
+      "mode": "targeted",
+      "base": "SFO",
+      "day": 2,
+      "delay_min": 180,
+      "burst": 0,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 4,
+        "at_risk": 0,
+        "uncovered": 23,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 0,
+        "uncovered": 0,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "violations_closed": 4,
+      "uncovered_closed": 23,
+      "closure_pct": 100.0,
+      "actions": 11,
+      "reserve_share": 18.0,
+      "picker": {
+        "covered": 8,
+        "value": 635.1,
+        "explored_nodes": 119190,
+        "capped": false
+      },
+      "runtime_ms": 287.5
+    },
+    {
+      "case": "FAR117/bank/LAX/D2/d300/b8/x2/w7",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "LAX",
+      "day": 2,
+      "delay_min": 300,
+      "burst": 8,
+      "cancels": 2,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 15,
+        "fatigue_mean": 10.7,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 10.6,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 15,
+      "closure_pct": 100.0,
+      "actions": 8,
+      "reserve_share": 38.0,
+      "picker": {
+        "covered": 6,
+        "value": 509.4,
+        "explored_nodes": 7920,
+        "capped": false
+      },
+      "runtime_ms": 166.7
+    },
+    {
+      "case": "FAR117/bank/SFO/D2/d300/b8/x1/w14",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "SFO",
+      "day": 2,
+      "delay_min": 300,
+      "burst": 8,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 3,
+        "at_risk": 1,
+        "uncovered": 24,
+        "fatigue_mean": 14.9,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 14.9,
+        "cancellations": 0
+      },
+      "violations_closed": 3,
+      "uncovered_closed": 24,
+      "closure_pct": 100.0,
+      "actions": 11,
+      "reserve_share": 27.0,
+      "picker": {
+        "covered": 10,
+        "value": 826.0,
+        "explored_nodes": 250001,
+        "capped": true
+      },
+      "runtime_ms": 537.7
+    },
+    {
+      "case": "FAR117/bank/LAX/D4/d480/b8/x1/w14",
+      "regime": "FAR117",
+      "mode": "bank",
+      "base": "LAX",
+      "day": 4,
+      "delay_min": 480,
+      "burst": 8,
+      "cancels": 1,
+      "do_nothing": {
+        "violations": 7,
+        "at_risk": 1,
+        "uncovered": 39,
+        "fatigue_mean": 15.1,
+        "cancellations": 0
+      },
+      "plan": {
+        "violations": 0,
+        "at_risk": 2,
+        "uncovered": 0,
+        "fatigue_mean": 14.7,
+        "cancellations": 0
+      },
+      "violations_closed": 7,
+      "uncovered_closed": 39,
+      "closure_pct": 100.0,
+      "actions": 19,
+      "reserve_share": 26.0,
+      "picker": {
+        "covered": 16,
+        "value": 1325.8,
+        "explored_nodes": 250001,
+        "capped": true
+      },
+      "runtime_ms": 844.2
+    }
+  ]
+}

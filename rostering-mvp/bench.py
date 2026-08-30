@@ -243,7 +243,9 @@ def main():
               f"{str(r['closure_pct']) + '%':>6}"
               f"{r['actions']:>6}{r['runtime_ms']:>8.0f}")
     print("\nsummary:", json.dumps(summary, indent=2))
-    emit_reports(results, summary, args.out)
+    # the quick smoke grid must never clobber the canonical full-grid report
+    # (scripts/check.sh runs --quick; the pitch numbers reference the full run)
+    emit_reports(results, summary, args.out + ("_quick" if args.quick else ""))
 
 
 if __name__ == "__main__":

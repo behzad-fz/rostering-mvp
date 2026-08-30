@@ -19,7 +19,7 @@ python3 bench.py                                   # 48-case benchmark grid
 |---|---|---|
 | 47 automated tests pass | `unittest discover` above | `Ran 47 tests ... OK` |
 | Demo: 3 violating crews → 0, uncovered 16 → 0 | `python3 run_demo.py` (what-if section) | plan: violations=0, uncovered=0 |
-| Benchmark: 48 cases, coverage closed everywhere | `python3 bench.py` → `out/bench_results.json` | `summary.total_uncovered_after == 0`, `"cases": 48` |
+| Benchmark: 48 cases, coverage closed everywhere | `python3 bench.py` → `out/bench_results.json` (the quick smoke grid writes to `out_quick/` so it never clobbers the canonical file) | `summary.total_uncovered_after == 0`, `"cases": 48` |
 | Violation-free plans in 46/48 | same JSON | exactly 2 cases with `plan.violations > 0` (`.../d720/...`), each with a `cancel`-kind proposal |
 | Worst-case recovery ≤0.9 s | `max_runtime_ms` in the JSON | ≤ 900 ms (14-day scale-up cases) |
 | FAR 117 tables exact (eCFR) | `test_rules.py::TestExactTables` + `TestEasaTable` | spot-values locked against the fetched values |
