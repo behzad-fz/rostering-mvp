@@ -17,12 +17,12 @@ RULE_DESCRIPTIONS = {
     "co.ft-per-fdp": "Company flight-time guardrail (not a FAR 117 limit)",
     "FAR117.rest-min": "Rest between duties below minimum",
     "EASA-FTL.ft-28d": "Flight time > 100 h / 28 consecutive days",
-    "EASA-FTL.ft-year": "Flight time > 900 h / calendar year",
-    "EASA-FTL.ft-12mo": "Flight time > 1,000 h / 12 months (not exercised in 7d demo)",
-    "EASA-FTL.duty-168h": "Duty > 60 h / 168 h (approximation)",
-    "EASA-FTL.duty-672h": "Duty > 190 h / 672 h (approximation)",
-    "EASA-FTL.fdp-per-duty": "Per-duty FDP exceeds limit",
-    "EASA-FTL.ft-per-fdp": "Per-duty flight time exceeds cap",
+    "EASA-FTL.ft-year": "Flight time > 900 h / calendar year (rolling 365-day window)",
+    "EASA-FTL.ft-12mo": "Flight time > 1,000 h / 12 consecutive months",
+    "EASA-FTL.duty-168h": "Duty > 60 h / 7 consecutive days",
+    "EASA-FTL.duty-336h": "Duty > 110 h / 14 consecutive days",
+    "EASA-FTL.duty-672h": "Duty > 190 h / 28 consecutive days",
+    "EASA-FTL.fdp-per-duty": "Per-duty FDP exceeds Annex III Table 2/3/4 limit",
     "EASA-FTL.rest-min": "Rest between duties below minimum",
 }
 
@@ -107,7 +107,8 @@ def emit_html(path: str, name: str, snap: Dict[str, object],
     vtable = "\n".join(vrows) or "<tr><td colspan=5>No rule findings</td></tr>"
 
     urows = "".join(
-        f'<tr><td>{u["id"]}</td><td>D{u["day"]}</td><td>{u["from"]}→{u["to"]}</td>'
+        f'<tr><td>{html.escape(str(u["id"]))}</td><td>D{u["day"]}</td>'
+        f'<td>{html.escape(str(u["from"]))}→{html.escape(str(u["to"]))}</td>'
         f'<td>{html.escape(u["reason"])}</td></tr>'
         for u in snap["uncovered"]) or "<tr><td colspan=4>None</td></tr>"
 
@@ -194,9 +195,11 @@ Rule activity: {rb}</div>
 {prop_html}
 {wf_html}
 <div class="note"><b>Prototype notice.</b> Cumulative limits are the verified FAR 117 / EASA FTL values from primary
-sources (EUR-Lex CELEX 32014R0083; 14 CFR part 117 via eCFR). Per-duty FDP tables are the <b>exact</b> FAR 117
-Table B/C values from eCFR (2025-01-01). Minimum rest, report/debrief buffers, the EASA per-duty scheme, and the
-company flight-time guardrail remain simplifications. Synthetic data only; a real pilot carrier is required for
+sources (14 CFR part 117 via eCFR, version 2025-01-01; Regulation (EU) No 83/2014 via the official EUR-Lex PDFs —
+both committed under <code>docs/</code>). Per-duty FDP tables are the <b>exact</b> FAR 117 Table B/C and the
+<b>exact</b> EASA Annex III Tables 2/3/4. Minimum-rest variants (FAR 117.25 reduced rest; EASA away-from-base,
+recovery-rest and reduced-rest schemes), report/debrief buffers, EASA extension schemes, and the company
+flight-time guardrail remain simplifications. Synthetic data only; a real pilot carrier is required for
 Phase 1 validation.</div>
 </body></html>"""
     with open(path, "w") as fh:

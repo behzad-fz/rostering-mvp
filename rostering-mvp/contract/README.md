@@ -46,8 +46,9 @@ Top level: `{ "schema", "flights": [...], "crews": [...], "pairings": [...],
 | Field | Type | Description |
 |---|---|---|
 | `id`, `base`, `group` (P/FA), `seniority` | string/int | identity |
-| `hist_flight_672h` | int min | pre-existing flight time in the 672 h window |
-| `hist_duty_168h` | int min | pre-existing duty in the 168 h window |
+| `acclimated` | bool | US/EASA acclimatisation state (unknown → EASA Tables 3/4) |
+| `hist_flight_672h`, `hist_flight_365d`, `hist_flight_12mo` | int min | pre-existing flight time in each cumulative window |
+| `hist_duty_168h`, `hist_duty_336h`, `hist_duty_672h` | int min | pre-existing duty in each cumulative window (incl. the EASA 110 h / 14 d tier) |
 
 ### `pairings[]`
 | Field | Type | Description |

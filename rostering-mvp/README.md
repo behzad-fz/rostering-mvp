@@ -40,7 +40,7 @@ python3 run_demo.py --regime EASA-FTL --delay-min 180
 python3 run_demo.py --days 7 --seed 42
 ```
 
-Tests (47 across `test_rules.py` + `test_recovery.py` + `test_extras.py` +
+Tests (54 across `test_rules.py` + `test_recovery.py` + `test_extras.py` +
 `test_bench.py`):
 
 ```sh
@@ -76,13 +76,16 @@ should surface:
 - One cancelled return flight → **uncovered flight + reserve-gap** line.
 - **Recovery proposals** for the gaps: the picker allocates reserve callouts
   and swaps across six pairings; pairing surgery splits the over-long X
-  pairing (P-SFO-0 keeps legs 1–2, a fresh crew covers legs 3–4); a release
-  heals the second crew on the shared pairing. Applying the proposals cuts
-  uncovered non-cancelled flights 16 → 0 and violating crews 3 → 0 in both
-  the baseline and disrupted scenarios.
+  pairing (P-SFO-0 keeps a legal prefix, a **base-constrained** crew covers
+  the suffix — no cross-base crewing). Applying the proposals cuts uncovered
+  non-cancelled flights 16 → 0 and violating crews 3 → 0 in both the baseline
+  and disrupted scenarios.
 - **What-if** confirms the plan: do nothing leaves 3 violations / 16 uncovered;
-  the plan takes both to zero (with reserve callouts, fatigue stats, and the
-  most-loaded crews listed on the dashboard).
+  the plan takes both to zero (uncovered reasons breakdown, reserve callouts,
+  fatigue stats, and the most-loaded crews on the dashboard). At-risk
+  (legal-but-tight) takers are permitted by policy, so a plan may show
+  `at_risk +1` while violations go to zero — margins are surfaced, never
+  hidden.
 
 ## Verified vs. approximated rules
 
@@ -94,7 +97,8 @@ should surface:
 | FAR 117 duty | 60 h / 168 h · 190 h / 672 h |
 | FAR 117 per-duty FDP | **exact Table B/C** (eCFR, version 2025-01-01) |
 | EASA FTL flight time | 100 h / 28 d · 900 h / year · 1,000 h / 12 mo |
-| EASA per-duty FDP | **exact Annex III Table 2** (max daily FDP, acclimatised — Reg (EU) 83/2014) |
+| EASA per-duty FDP | **exact Annex III Tables 2/3/4** (acclimatised / unknown acclimatisation / FRM — Reg (EU) 83/2014) |
+| EASA duty accumulators | **60 h / 7 d · 110 h / 14 d · 190 h / 28 d** (ORO.FTL.210) |
 
 **Remaining simplifications (flagged in code):** minimum-rest variants (the
 10 h standard modeled; FAR 117.25 reduced-rest and EASA away-from-base ≥10 h /
@@ -113,15 +117,15 @@ python3 bench.py --single --delay 480 --burst 8   # one case
 ```
 
 **Results (this build):** coverage closed in **48/48** scenarios (0 uncovered —
-do-nothing damage spans up to **38 uncovered flights / 10 violating crews**
+do-nothing damage spans up to **47 uncovered flights / 7 violating crews**
 under 12-hour delays) and **46/48** end at **0 violations**. The two most
 extreme cases (12 h delays sliding LAX legs through the critical pairing) keep
 one crew-legality exposure and the engine **explicitly recommends
-cancellation** rather than an illegal fix. At-risk (legal but tight) takers
-are permitted and surfaced by margin — violations are never proposed. Mean
-runtime **244 ms**, worst **~0.9 s** (14-day horizon; extreme states cap the
-picker search at 250 k nodes, flagged `picker.capped`). Outputs:
-`out/bench_results.json` + `out/bench_report.html`.
+cancellation** (8 flights across the grid, counted in the what-if).
+At-risk (legal but tight) takers are permitted and surfaced by margin —
+violations are never proposed. Mean runtime **171 ms**, worst **≤1.0 s**
+(14-day horizon; extreme states cap the picker search at 250 k nodes, flagged
+`picker.capped`). Outputs: `out/bench_results.json` + `out/bench_report.html`.
 
 **Two findings the sweep surfaced:** (1) the day-trip world has enough slack
 that delays up to ~5 h rarely breach legality — legality pressure only appears

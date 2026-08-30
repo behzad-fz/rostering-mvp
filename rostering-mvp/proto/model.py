@@ -36,10 +36,12 @@ class Crew:
     base: str
     group: str          # 'P' pilot | 'FA' flight attendant
     seniority: int = 0
+    acclimated: bool = True   # unknown acclimatisation -> EASA Tables 3/4
     # Pre-existing accumulator history (minutes), used to exercise the
     # cumulative window rules on a 7-day horizon.
     hist_flight_672h: int = 0      # flight minutes in any 672-hour window     (FAR 117: <= 100 h)
     hist_flight_365d: int = 0      # flight minutes in the 365-day window      (FAR 117: <= 1000 h)
+    hist_flight_12mo: int = 0      # flight minutes in a 12-month window       (EASA: <= 1000 h)
     hist_duty_168h: int = 0        # duty minutes in any 168-hour window       (FAR 117/EASA: <= 60 h)
     hist_duty_336h: int = 0        # duty minutes in any 336-hour window       (EASA: <= 110 h)
     hist_duty_672h: int = 0        # duty minutes in any 672-hour window       (FAR 117/EASA: <= 190 h)

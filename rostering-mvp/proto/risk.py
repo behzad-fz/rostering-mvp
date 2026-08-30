@@ -68,6 +68,8 @@ def reserve_gaps(w: World, checks: Dict[str, CrewCheck],
                 available[key] = available.get(key, 0) + (0 if checks.get(cid, None) and
                                                           checks[cid].worst == "violation" else 1)
     for f, reason in uncovered:
+        if f.cancelled:
+            continue          # nothing to cover for a flight that is not operating
         key = (f.day, f.origin)
         key2 = (f.day, f.dest)
         key = key if key in available else key2
@@ -89,6 +91,7 @@ def summary(w: World, checks: Dict[str, CrewCheck],
     for c in checks.values():
         counts[c.worst] += 1
         viols.extend(c.violations)
+    from collections import Counter
     return {
         "crews": len(checks),
         "flights": len(w.flights),
@@ -98,6 +101,7 @@ def summary(w: World, checks: Dict[str, CrewCheck],
         "ok": counts["ok"],
         "rule_breakdown": _rule_breakdown(viols),
         "uncovered": len(uncovered),
+        "uncovered_reasons": dict(Counter(reason for _f, reason in uncovered)),
     }
 
 

@@ -84,7 +84,7 @@
   runs still close coverage fully; flagged `picker.capped`.
 - **Complexity note:** pure-Python DFS is prototype-grade; production swaps in
   OR-Tools/Gurobi at the same interface (the benchmark quantified why: 16 M
-  DFS nodes / 7.5 s before the cap → ≤0.5 s after).
+  DFS nodes / 7.5 s before the cap → ≤1.0 s after, incl. 14-day horizons).
 
 ## 5. What-if & fatigue
 
@@ -98,8 +98,8 @@
 
 | Metric | Value |
 |---|---|
-| Full pipeline (world → radar → recovery → what-if), mean | **244 ms** |
-| Worst case (12 h mass delay, 14-day horizon, 38+ uncovered / 10+ violations) | **~0.9 s** |
+| Full pipeline (world → radar → recovery → what-if), mean | **171 ms** |
+| Worst case (12 h mass delay, 14-day horizon, 47 uncovered / 7 violations) | **≤1.0 s** |
 | Coverage closed (48-scenario grid incl. 14-day scale-ups) | **48/48 → 0 uncovered** |
 | Violation-free plans | **46/48** (the 2 most extreme 12 h-delay cases keep one crew exposure and explicitly recommend cancellation) |
 | Legality validation per candidate | microseconds (batch) |

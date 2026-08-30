@@ -29,14 +29,14 @@ A stdlib-only Python demo (`rostering-mvp/`) covering the full loop: synthetic a
 - **Risk radar** — legality-broken crews with margins, uncovered flights, reserve gaps.
 - **Recovery action ladder — every proposal legality-validated**: reserve → swap → deadhead (cost-modeled) → pairing surgery (split an over-long duty) → knock-on relief → explicit cancellation recommendation when no legal crewing option exists. Legal-but-tight (at-risk) takers are permitted and surfaced with margins — **violations are never proposed**.
 - **What-if** — "do nothing vs. this plan" for legality, coverage, and fatigue before any action is committed.
-- **Benchmark (48 scenarios, incl. 14-day scale-ups):** do-nothing damage up to **38 uncovered flights / 10 violating crews** under 12-hour hub disruptions; the plan closes **coverage in all 48** (0 uncovered) and is **violation-free in 46**; the two most extreme 12 h-delay cases explicitly recommend cancellation; worst-case recovery **≤0.9 s**.
+- **Benchmark (48 scenarios, incl. 14-day scale-ups):** do-nothing damage up to **47 uncovered flights / 7 violating crews** under 12-hour hub disruptions; the plan closes **coverage in all 48** (0 uncovered) and is **violation-free in 46**; the two most extreme 12 h-delay cases explicitly recommend cancellation; worst-case recovery **≤1.0 s**.
 
 ## The moat
 
 1. **Exact, certified rule packs** (regulation + CBA constraints) with regression suites — the top barrier to entry, and the top asset once accumulated.
 2. **Legality-before-optimality** — never proposes anything illegal; explainable outputs schedulers and unions can contest.
 3. **Fatigue + fairness built in** — FRMS-model seam (SAFTE/FAID/FAST-class), quantified fairness, immutable audit trails for regulators and unions.
-4. **A solver ladder incumbents don't have** — exact picker, surgery, relief; 14× runtime win from engineering the search (7.5 s → 0.5 s, still 100% closure).
+4. **A solver ladder incumbents don't have** — exact picker, surgery, relief; 14× runtime win from engineering the search (7.5 s → ≤1.0 s on 14-day horizons, coverage still fully closed).
 
 ## Business case
 
@@ -57,4 +57,4 @@ A stdlib-only Python demo (`rostering-mvp/`) covering the full loop: synthetic a
 
 ---
 
-*Repo: research report (`airline-rostering-research.md`), architecture blueprint (`recovery-engine-architecture.md`), working prototype with 47 tests (`rostering-mvp/`; `python3 run_demo.py`) — all committed, CI'd, and reproducible.*
+*Repo: research report (`airline-rostering-research.md`), architecture blueprint (`recovery-engine-architecture.md`), working prototype with 54 tests (`rostering-mvp/`; `python3 run_demo.py`) — all committed, CI'd, and reproducible.*

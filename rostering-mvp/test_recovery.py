@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from proto.disrupt import apply_delay                       # noqa: E402
 from proto.legality import evaluate                 # noqa: E402
 from proto.model import Crew, Flight, Pairing, World  # noqa: E402
-from proto.recovery import generate, measure        # noqa: E402
+from proto.recovery import _travel_min, generate, measure        # noqa: E402
 from proto.risk import uncovered_flights            # noqa: E402
 from proto.rules import RuleEngine                  # noqa: E402
 from proto.schedule_gen import build_world          # noqa: E402
@@ -24,7 +24,7 @@ from proto.timeutil import hm                       # noqa: E402
 
 class TestRecovery(unittest.TestCase):
     def setUp(self):
-        self.w = build_world(days=7, seed=42)
+        self.w = build_world(days=7)
         self.eng = RuleEngine("FAR117")
         self.checks = evaluate(self.w, self.eng)
 
@@ -50,8 +50,11 @@ class TestRecovery(unittest.TestCase):
     def test_picker_covers_all_fixable_gaps(self):
         proposals, _ = generate(self.w, self.eng, self.checks)
         picked = {p["pairing_id"] for p in proposals if p["kind"] in ("reserve", "swap")}
-        self.assertTrue({"P0-SFO-0", "P2-LAX-0", "P3-SFO-1", "P4-SFO-1", "P6-LAX-1"}
-                        <= picked, picked)
+        # one crew unit per pairing means each broken crew's OWN pairings are
+        # the gaps: P-SFO-0 (P0/P4-SFO-0), P-SFO-3 (P1/P5-SFO-1),
+        # P-LAX-2 (P1/P5-LAX-0)
+        self.assertTrue({"P0-SFO-0", "P4-SFO-0", "P1-SFO-1", "P5-SFO-1",
+                         "P1-LAX-0", "P5-LAX-0"} <= picked, picked)
 
     def test_applying_proposals_reduces_uncovered(self):
         proposals, outcome = generate(self.w, self.eng, self.checks)
@@ -77,10 +80,11 @@ class TestRecovery(unittest.TestCase):
         proposals, outcome = generate(self.w, self.eng, self.checks)
         self.assertEqual(outcome["after_violations"], 0)
         self.assertEqual(outcome["after_uncovered_non_cancelled"], 0)
+        # relief may or may not fire (one crew per pairing now, so the shared-
+        # pairing case is gone) — when it does, it must be by the book
         reliefs = [p for p in proposals if p["kind"] == "relieve"]
-        self.assertGreaterEqual(len(reliefs), 1)
-        self.assertTrue(any(p.get("relieved_crew") == "P-SFO-3" for p in reliefs),
-                        reliefs)
+        for p in reliefs:
+            self.assertTrue(p["legality_ok"], p)
 
     def test_relief_uses_each_crew_once(self):
         proposals, _ = generate(self.w, self.eng, self.checks)
@@ -93,6 +97,34 @@ class TestRecovery(unittest.TestCase):
         # 8 = 6 picker gaps + 1 surgery + 1 release; asserted as a floor so
         # generator-staffing tweaks don't make this brittle
         self.assertGreaterEqual(outcome["proposals_applied"], 7)
+
+
+class TestDeadheadTravel(unittest.TestCase):
+    """Finding 4: deadhead must be priced by real block distances."""
+
+    def test_travel_min_uses_schedule_blocks(self):
+        from proto.schedule_gen import BLOCK
+        self.assertEqual(_travel_min("SFO", "LAX"), BLOCK[("SFO", "LAX")])
+        self.assertEqual(_travel_min("SFO", "DEN"), BLOCK[("SFO", "DEN")])
+
+    def test_deadhead_valid_reports_real_travel(self):
+        from proto.recovery import _deadhead_valid
+        w = World()
+        # a DEN-based crew deadheads to cover an SFO-based pairing:
+        # travel DEN -> SFO must be the real 155-min block, not the 150 fallback
+        f1 = Flight("F1", 0, hm(0, 9, 0), hm(0, 11, 35), "SFO", "DEN")
+        f2 = Flight("F2", 0, hm(0, 12, 15), hm(0, 14, 50), "DEN", "SFO")
+        w.flights += [f1, f2]
+        w.pairings.append(Pairing("PD", ["F1", "F2"]))
+        w.crews = [Crew("P-SFO-0", "SFO", "P"),
+                   Crew("P-DEN-0", "DEN", "P")]
+        w.assignments = [("P-SFO-0", "PD")]
+        w.reserves = {0: []}
+        w.index()
+        ok, margin, travel = _deadhead_valid(w, RuleEngine("FAR117"),
+                                             "P-DEN-0", "PD")
+        self.assertTrue(ok)
+        self.assertEqual(travel, 155)   # DEN -> SFO block from the generator
 
 
 class TestPropagation(unittest.TestCase):
@@ -164,7 +196,7 @@ class TestDeadhead(unittest.TestCase):
         self.assertEqual([p["kind"] for p in applied], ["deadhead"])
 
     def test_deadhead_not_chosen_when_local_options_exist(self):
-        w = build_world(days=7, seed=42)
+        w = build_world(days=7)
         eng = RuleEngine("FAR117")
         checks = evaluate(w, eng)
         proposals, _ = generate(w, eng, checks)
@@ -202,7 +234,7 @@ class TestSurgeryFirst(unittest.TestCase):
     otherwise a later gap's surgery can be starved of takers."""
 
     def test_surgery_first_prevents_crew_starvation(self):
-        w = build_world(days=7, seed=42)
+        w = build_world(days=7)
         eng = RuleEngine("FAR117")
         ids = [w.pairing("X-long-2").flight_ids[-1],
                w.pairing("Y-long-3").flight_ids[-1]]

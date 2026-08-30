@@ -17,21 +17,31 @@ python3 bench.py                                   # 48-case benchmark grid
 
 | Claim | How to verify | Expected |
 |---|---|---|
-| 47 automated tests pass | `unittest discover` above | `Ran 47 tests ... OK` |
+| 54 automated tests pass | `unittest discover` above | `Ran 54 tests ... OK` |
 | Demo: 3 violating crews → 0, uncovered 16 → 0 | `python3 run_demo.py` (what-if section) | plan: violations=0, uncovered=0 |
 | Benchmark: 48 cases, coverage closed everywhere | `python3 bench.py` → `out/bench_results.json` (the quick smoke grid writes to `out_quick/` so it never clobbers the canonical file) | `summary.total_uncovered_after == 0`, `"cases": 48` |
 | Violation-free plans in 46/48 | same JSON | exactly 2 cases with `plan.violations > 0` (`.../d720/...`), each with a `cancel`-kind proposal |
-| Worst-case recovery ≤0.9 s | `max_runtime_ms` in the JSON | ≤ 900 ms (14-day scale-up cases) |
+| Worst-case recovery ≤1.0 s | `max_runtime_ms` in the JSON | ≤ 1000 ms (14-day scale-up cases; ~171 ms mean) |
 | FAR 117 tables exact (eCFR) | `test_rules.py::TestExactTables` + `TestEasaTable` | spot-values locked against the fetched values |
-| EASA Annex III Table 2 exact | `TestEasaTable` (values from the official PDF) | spot-values locked (e.g. 09:00 start, 2 sectors = 780 min) |
-| EASA duty accumulators 60/110/190 h | `TestEasa.test_14d_duty_cap` + engine params | verified from ORO.FTL.210 text |
+| EASA Annex III Tables 2/3/4 exact | `TestEasaTable` (values from the official PDF) | spot-values locked (e.g. 09:00 start, 2 sectors = 780 min) |
+| EASA duty accumulators 60/110/190 h + ft-12mo | `TestEasa.*` + `TestAuditFixes.test_ft_12mo_accumulator` | verified from ORO.FTL.210 text |
 | No proposal is ever illegal | property tests `TestRecovery.test_proposals_nonempty_and_legal`, `TestBench.test_plan_never_worse_than_do_nothing_across_quick_grid` | pass |
+| Audit-fix regressions | `TestAuditFixes` (dashboard escaping, contract cross-refs, unacclimated Table 3, ft-12mo, reason breakdown), `TestDeadheadTravel` (real block distances), `TestCancel`, `TestSurgeryFirst`, `TestNoCrew` | pass |
 
 ## Rule-value provenance
 
 - **FAR 117** (14 CFR part 117): fetched from the eCFR XML API,
   `full/2025-01-01/title-14.xml?part=117`; Tables B/C encoded verbatim in
   `proto/rules.py` (`TABLE_B`, `TABLE_C`); cumulative limits in `FAR117_PARAMS`.
+  An offline snapshot of the fetched XML is committed at
+  `docs/far117-part-117-2025-01-01.xml` when eCFR access allows (the API was
+  rate-limiting during some sessions — the encoding is test-locked either way;
+  re-verify against a fresh fetch before pilot use).
+  *Note on Table C:* an external review asserted different start-time bands
+  (13:00-17:59 / 18:00-23:59); the bands in `TABLE_C` (…17:00-23:59) are the
+  values literally printed by the eCFR 2025-01-01 XML this project fetched
+  (see the committed snapshot / re-fetch): `0000-0559`, `0600-0659`,
+  `0700-1259`, `1300-1659`, `1700-2359`. Spot-locks in `TestExactTables`.
 - **EASA FTL** (Regulation (EU) No 83/2014): official EUR-Lex PDFs committed
   under `docs/` (`Regulation - 83_2014 - EN - EUR-Lex.pdf`,
   `CELEX_32014R0083_EN_TXT.pdf`); Annex III Table 2 / Tables 3-4 and the

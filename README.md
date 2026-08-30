@@ -8,7 +8,7 @@ stdlib-only prototype of the disruption-recovery wedge.
 
 | Path | What it is |
 |---|---|
-| `pitch-one-pager.md` | Stakeholder/investor one-pager: the problem, the wedge, prototype proof (48/48 coverage closure, ≤0.9 s worst-case), moat, business case, and the 90-day ask. |
+| `pitch-one-pager.md` | Stakeholder/investor one-pager: the problem, the wedge, prototype proof (48/48 coverage closure, ≤1.0 s worst-case), moat, business case, and the 90-day ask. |
 | `pitch-technical-cto.md` | Technical brief for a CTO / head of OCC: architecture, integration model, legality/rule-pack detail, solver ladder, performance numbers, reliability posture, pilot engagement and exit criteria. |
 | `pitch-speaker-notes.md` | Speaker notes for presenting: timed walkthrough with scripted lines, live-demo talking points, Q&A prep (12 likely questions), and audience-specific tips. |
 | `airline-rostering-research.md` | Full opportunity research: the legacy vendor landscape, the scheduling science, regulation/fatigue/labor constraints (with FAR 117 & EASA FTL limits **verified against primary sources**), gap analysis, business case, go-to-market. |
@@ -22,7 +22,7 @@ cd rostering-mvp
 python3 run_demo.py                # FAR 117 regime, disruption + recovery
 python3 run_demo.py --regime EASA-FTL --delay-min 180
 python3 bench.py                   # 48-case benchmark / sensitivity sweep
-python3 -m unittest discover -s . -p 'test_*.py'   # 47 tests
+python3 -m unittest discover -s . -p 'test_*.py'   # 54 tests
 ```
 
 Open `rostering-mvp/out/report_disrupted.html` for the dashboard.
@@ -48,7 +48,7 @@ Open `rostering-mvp/out/report_disrupted.html` for the dashboard.
   sweep across delay size, burst, target mode, cancellations, and 14-day
   scale-ups — coverage closed in every case (0 uncovered), violation-free in
   46/48 (the two most extreme 12 h-delay cases recommend cancellation),
-  worst-case recovery ≤0.9 s.
+  worst-case recovery ≤1.0 s.
 
 ## Status & roadmap
 
@@ -57,7 +57,7 @@ Open `rostering-mvp/out/report_disrupted.html` for the dashboard.
 - Phase 2 (exact picker, pairing surgery, relief, deadhead) — done (prototype-grade)
 - Exact FAR 117 Table B/C rule pack, what-if/fatigue, feed contract — done
 - Benchmark / sensitivity suite (48-case grid incl. 14-day scale-ups, 100%
-  coverage closure, ≤0.9 s/case) — done
+  coverage closure, ≤1.0 s/case) — done
 - Exact EASA Annex III Tables 2/3/4 + verified duty accumulators (60/110/190 h)
   and home-base rest (official PDF committed under `rostering-mvp/docs/`) — done
 - CI + packaging (`pyproject.toml`, GitHub Actions workflow, `scripts/check.sh`) — done
@@ -67,5 +67,5 @@ Open `rostering-mvp/out/report_disrupted.html` for the dashboard.
 
 ## License
 
-No license chosen yet — this is research/prototype material; decide before
-sharing externally.
+Proprietary — all rights reserved (see `LICENSE`). No license is granted for
+external use yet; choose MIT / Apache-2.0 before sharing widely.

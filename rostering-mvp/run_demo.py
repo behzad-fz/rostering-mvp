@@ -9,7 +9,7 @@
   5. Emit out/report.json, out/report_baseline.html, out/report_disrupted.html.
 
 Usage:
-    python3 run_demo.py [--days 7] [--seed 42] [--regime FAR117|EASA-FTL]
+    python3 run_demo.py [--days 7] [--regime FAR117|EASA-FTL]
                         [--delay-min 150]
 """
 import argparse
@@ -61,14 +61,13 @@ def print_radar(label, snap):
 def main():
     ap = argparse.ArgumentParser(description="Phase-0 legality engine + risk radar demo")
     ap.add_argument("--days", type=int, default=7)
-    ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--regime", choices=["FAR117", "EASA-FTL"], default="FAR117")
     ap.add_argument("--delay-min", type=int, default=150)
     ap.add_argument("--out", default="out")
     args = ap.parse_args()
 
     engine = RuleEngine(args.regime)
-    w = build_world(days=args.days, seed=args.seed)
+    w = build_world(days=args.days)
 
     # ---- baseline -------------------------------------------------------
     base_checks = evaluate(w, engine)
@@ -112,8 +111,9 @@ def main():
           f"uncovered={dn['uncovered']} | fatigue mean={dn['fatigue']['mean']} "
           f"high={dn['fatigue']['high']}")
     print(f"  plan:       violations={pl['violations']} at-risk={pl['at_risk']} "
-          f"uncovered={pl['uncovered']} | fatigue mean={pl['fatigue']['mean']} "
-          f"high={pl['fatigue']['high']} (deltas {wf['deltas']})")
+          f"uncovered={pl['uncovered']} cancellations={pl.get('cancellations', 0)} "
+          f"| fatigue mean={pl['fatigue']['mean']} high={pl['fatigue']['high']} "
+          f"(deltas {wf['deltas']})")
     print("  top fatigue crews after plan:",
           [(r['crew_id'], r['index'], r['level']) for r in pl['fatigue']['top'][:5]])
 
@@ -132,7 +132,7 @@ def main():
     os.makedirs(args.out, exist_ok=True)
     emit_json(os.path.join(args.out, "report.json"),
               {"meta": {"regime": args.regime, "delay_min": args.delay_min,
-                        "days": args.days, "seed": args.seed,
+                        "days": args.days,
                         "delayed_flights": [f.id for f in targets]},
                "baseline": base_snap,
                "disrupted": {**dis_snap, "proposals": proposals,

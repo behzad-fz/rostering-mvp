@@ -39,7 +39,7 @@ def _partners(base: str, day: int) -> List[str]:
     return [others[day % len(others)], others[(day + 1) % len(others)]]
 
 
-def build_world(days: int = 7, seed: int = 42) -> World:
+def build_world(days: int = 7) -> World:
     w = World()
 
     # ---- flights & pairings ------------------------------------------------
@@ -83,7 +83,10 @@ def build_world(days: int = 7, seed: int = 42) -> World:
                 [f"RP-{base}-{i}" for i in range(RESERVE_PILOTS)] +
                 [f"RF-{base}-{i}" for i in range(RESERVE_FA)])
 
-    # ---- assignments (round-robin, comfortably legal) -----------------------
+    # ---- assignments (one crew unit per pairing x group, no double-staffing) ---
+    # Deterministic rotation: crew index (day*2 + slot) % n — with 2 pairings
+    # per base-day, this guarantees exactly one crew per slot, never two crews
+    # on the same pairing, and never the same crew twice on one day.
     for base in BASES:
         day_pairings: Dict[int, List[Tuple[str, int]]] = {d: [] for d in range(days)}
         for pid, flights, day in pairing_rows:
@@ -91,17 +94,9 @@ def build_world(days: int = 7, seed: int = 42) -> World:
                 day_pairings[day].append((pid, len(flights)))
 
         for group, label in (("P", PILOTS_PER_BASE), ("FA", FA_PER_BASE)):
-            for i in range(label):
-                crew_id = f"{group}-{base}-{i}"
-                # two duties per crew, ~4 days apart
-                d1 = i % days
-                d2 = (i + 4) % days
-                picks = []
-                if day_pairings[d1]:
-                    picks.append((d1, day_pairings[d1][i % len(day_pairings[d1])]))
-                if day_pairings[d2]:
-                    picks.append((d2, day_pairings[d2][(i + 1) % len(day_pairings[d2])]))
-                for d, (pid, segs) in picks:
+            for day in range(days):
+                for slot, (pid, _segs) in enumerate(day_pairings[day]):
+                    crew_id = f"{group}-{base}-{(day * 2 + slot) % label}"
                     w.assignments.append((crew_id, pid))
 
     w = _staff_gaps(w)

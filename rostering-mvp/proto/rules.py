@@ -13,10 +13,12 @@ VERIFIED from primary sources (fetched this session):
                     exact values encoded below
 
 Remaining simplifications (flagged):
-  - EASA unknown-acclimatisation tables (Annex III Tables 3/4 under FRM) and
-    the extension schemes (+1 h twice per 7 days, in-flight rest, split duty,
-    cabin-crew reporting-time difference) are not yet encoded
-  - EASA duty accumulators (60 h / 168 h, 190 h / 672 h) are approximations
+  - EASA annex extension schemes (+1 h twice per 7 days, in-flight rest, split
+    duty, cabin-crew reporting-time difference) are not yet encoded
+  - EASA away-from-home-base rest (>= 10 h), reduced-rest and 36 h recurrent
+    recovery-rest variants are not modeled (the 12 h home-base standard is)
+  - the EASA 900 h 'calendar year' cap is modeled as a rolling 365-day window
+    (conservative)
   - report (60 min) & debrief (15 min) buffers
   - 'co.ft-per-fdp': a company flight-time guardrail (8 h / 9 h augmented) —
     this is NOT a FAR 117 limit; FAR 117 governs duty via Table B/C
@@ -219,7 +221,8 @@ class RuleEngine:
         # Per-duty FDP and flight-time caps ---------------------------------
         for d in duties:
             duty_min = d.end - d.start
-            lim = self.fdp_limit_min(d.start % DAY, d.segments)
+            lim = self.fdp_limit_min(d.start % DAY, d.segments,
+                                     acclimated=crew.acclimated)
             v = self._mk(f"{self.p['regime']}.fdp-per-duty",
                          lim - duty_min,
                          f"{d.pairing_id}: duty {duty_min // 60}h{duty_min % 60:02d} vs FDP limit {lim // 60}h")
@@ -264,6 +267,15 @@ class RuleEngine:
             fty = cc.total_flight_min + crew.hist_flight_365d
             v = self._mk(f"{self.name}.ft-year", self.p["ft_year"] - fty,
                          f"flight time {fty // 60}h vs year limit {self.p['ft_year'] // 60}h")
+            if v:
+                cc.violations.append(v)
+            # ORO.FTL.210: 1,000 h in any 12-consecutive-months window
+            # (the 900 h 'calendar year' cap above is modeled as a rolling
+            # 365-day window via hist_flight_365d — conservative semantics,
+            # flagged)
+            ft12 = cc.total_flight_min + crew.hist_flight_12mo
+            v = self._mk("EASA-FTL.ft-12mo", self.p["ft_12mo"] - ft12,
+                         f"flight time {ft12 // 60}h vs 12-month limit {self.p['ft_12mo'] // 60}h")
             if v:
                 cc.violations.append(v)
 

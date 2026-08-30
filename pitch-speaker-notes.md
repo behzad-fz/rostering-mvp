@@ -15,7 +15,7 @@ Q&A. Bullets are lines to say out loud, not slides to read.
 - Have ready to run live (each prints in seconds): `python3 run_demo.py`,
   `python3 bench.py --quick`
 - Write three numbers on a card — you will quote them repeatedly:
-  **48/48 · ~0.9 s · 3 → 0** (scenarios closed on coverage, worst-case recovery
+  **48/48 · ≤1.0 s · 3 → 0** (scenarios closed on coverage, worst-case recovery
   time incl. the 14-day scale-up runs, demo violations before → after).
 
 ---
@@ -67,8 +67,8 @@ Q&A. Bullets are lines to say out loud, not slides to read.
 
 ## 4. The proof (60 s) — show bench_report.html
 
-- "46 scenarios, from calm to 12-hour mass delays, worst case 38 uncovered
-  flights and 10 crews in violation."
+- "48 scenarios, from calm to 12-hour mass delays, worst case 47 uncovered
+  flights and 7 crews in violation."
 - "Every single one closes to zero — and the worst case takes about
   **half a second**."
 - "That's decision support at the speed the problem moves. Batch systems

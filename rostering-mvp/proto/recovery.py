@@ -20,6 +20,7 @@ from .legality import build_duties, evaluate, pairing_duty
 from .model import Crew, DutyEvent, Pairing, World
 from .risk import uncovered_flights
 from .rules import CrewCheck, RuleEngine
+from .schedule_gen import BLOCK
 from .timeutil import DAY
 
 GAP_VALUE = 100.0        # covering a gap dominates any single action score
@@ -68,25 +69,37 @@ def _crew_can_take(w: World, engine: RuleEngine, cid: str, pid: str):
     return True, (cc.min_margin if cc.worst == "at_risk" else None)
 
 
+def _travel_min(origin: str, dest: str) -> int:
+    """Real scheduled block minutes between two bases when the schedule knows
+    the pair; a documented fallback otherwise (finding: deadhead must be
+    priced by real distance, not a constant)."""
+    return BLOCK.get((origin, dest), DEADHEAD_TRAVEL_MIN)
+
+
 def _deadhead_valid(w: World, engine: RuleEngine, cid: str, pid: str):
     """Would crew cid remain fully legal after deadheading from another base
     to operate pairing pid? The repositioning leg is modeled as one combined
     duty (travel + operated duty), which is how most FTL regimes treat it.
+    Travel minutes come from the schedule's real block times.
     Returns (ok, margin_after, travel_min)."""
     p = w.pairing(pid)
+    crew = _crew(w, cid)
+    if crew is None:
+        return False, None, DEADHEAD_TRAVEL_MIN
+    travel = _travel_min(crew.base, w.flight(p.flight_ids[0]).origin)
     base_duty = pairing_duty(w, p, cid)
     ev = DutyEvent(crew_id=cid, pairing_id=f"DH:{pid}", day=base_duty.day,
                    start=base_duty.start - DEADHEAD_LEAD_MIN,
                    end=base_duty.end,
                    segments=base_duty.segments + 1,
-                   flight_min=DEADHEAD_TRAVEL_MIN + base_duty.flight_min)
+                   flight_min=travel + base_duty.flight_min)
     duties = list(build_duties(w).get(cid, [])) + [ev]
     if not _no_overlap(duties):
-        return False, None, DEADHEAD_TRAVEL_MIN
+        return False, None, travel
     cc = engine.check(_crew(w, cid), duties)
     if cc.worst == "violation":
-        return False, cc.min_margin, DEADHEAD_TRAVEL_MIN
-    return True, (cc.min_margin if cc.worst == "at_risk" else None), DEADHEAD_TRAVEL_MIN
+        return False, cc.min_margin, travel
+    return True, (cc.min_margin if cc.worst == "at_risk" else None), travel
 
 
 def describe_pairing(w: World, pid: str) -> str:
@@ -228,17 +241,21 @@ def solve_picker(gaps: List[dict], max_nodes: int = 250_000,
 
 
 # ------------------------------------------------------------ pairing surgery
-def _suffix_crew_candidates(w: World, suffix_pid: str, group: str, base: str,
+def _suffix_crew_candidates(w: World, suffix_pid: str, group: str,
                             day: int, used: set, exclude: set):
     """Ordered (crew_id, kind, score) list of crews who could legally take the
-    suffix pairing. Legality is re-validated by the caller on the split world."""
+    suffix pairing. Takers are restricted to the suffix's FIRST-LEG base — a
+    crew-unit must be based where the duty departs (no cross-base surgery;
+    cross-base movement is only modeled through the deadhead action).
+    Legality is re-validated by the caller on the split world."""
+    suf_origin = w.flight(w.pairing(suffix_pid).flight_ids[0]).origin
     out = []
     for cid in w.reserves.get(day, []):
         c = _crew(w, cid)
-        if c and c.group == group and c.base == base and cid not in used and cid not in exclude:
+        if c and c.group == group and c.base == suf_origin and cid not in used and cid not in exclude:
             out.append((cid, "reserve", 10.0))
     for c in w.crews:
-        if c.group != group or c.base != base:
+        if c.group != group or c.base != suf_origin:
             continue
         if c.id in used or c.id in exclude or c.id in w.reserves.get(day, []):
             continue
@@ -282,8 +299,7 @@ def find_surgery(w: World, engine: RuleEngine, gap: dict, checks: Dict[str, Crew
             w2.assignments.append((broken, pre))
 
         for cid, kind, score in _suffix_crew_candidates(w2, suf, gap["group"],
-                                                        gap["base"], gap["day"],
-                                                        used, exclude):
+                                                        gap["day"], used, exclude):
             ok, margin = _crew_can_take(w2, engine, cid, suf)
             if not ok:
                 continue

@@ -14,9 +14,10 @@ from proto.foresight import scenario, whatif                      # noqa: E402
 from proto.legality import evaluate                               # noqa: E402
 from proto.model import Crew, DutyEvent, Flight, Pairing, World   # noqa: E402
 from proto.recovery import generate                               # noqa: E402
+from proto.report import emit_html                                # noqa: E402
 from proto.risk import uncovered_flights                           # noqa: E402
 from proto.rules import RuleEngine                                # noqa: E402
-from proto.schedule_gen import build_world                        # noqa: E402
+from proto.schedule_gen import BLOCK, build_world                 # noqa: E402
 from proto.timeutil import hm                                     # noqa: E402
 
 
@@ -55,7 +56,7 @@ class TestFatigue(unittest.TestCase):
 
 class TestWhatif(unittest.TestCase):
     def setUp(self):
-        self.w = build_world(days=7, seed=42)
+        self.w = build_world(days=7)
         self.eng = RuleEngine("FAR117")
         self.checks = evaluate(self.w, self.eng)
         self.proposals, self.outcome = generate(self.w, self.eng, self.checks)
@@ -91,7 +92,7 @@ class TestWhatif(unittest.TestCase):
 
 class TestContract(unittest.TestCase):
     def setUp(self):
-        self.w = build_world(days=7, seed=42)
+        self.w = build_world(days=7)
 
     def test_export_valid_and_complete(self):
         payload = to_contract_json(self.w)
@@ -135,6 +136,71 @@ class TestNoCrew(unittest.TestCase):
         proposals, outcome = generate(w, eng, evaluate(w, eng))
         self.assertTrue(any(p["kind"] == "reserve" for p in proposals), proposals)
         self.assertEqual(outcome["after_uncovered_non_cancelled"], 0)
+
+
+class TestAuditFixes(unittest.TestCase):
+    """Regression locks for the independent-audit findings."""
+
+    def test_dashboard_escapes_feed_supplied_values(self):
+        # finding 1 (CRITICAL): flight ids / station codes come from the feed
+        snap = {"regime": "FAR117",
+                "summary": {"crews": 1, "flights": 1, "duties": 1, "violations": 0,
+                            "at_risk": 0, "ok": 1, "uncovered": 1,
+                            "rule_breakdown": {}, "uncovered_reasons": {}},
+                "crews": [],
+                "uncovered": [{"id": "<img src=x onerror=alert(1)>", "day": 0,
+                               "from": "<script>", "to": "DEN", "reason": "x"}],
+                "gaps": {}}
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            emit_html(td + "/r.html", "t", snap)
+            html_text = open(td + "/r.html").read()
+        self.assertNotIn("<img src=x", html_text)
+        self.assertNotIn("<script>", html_text)
+        self.assertIn("&lt;img", html_text)
+
+    def test_contract_validation_catches_bad_references(self):
+        w = build_world(days=7)
+        payload = to_contract_json(w)
+        self.assertEqual(validate_contract(payload), [])
+        # break it: unknown flight in a pairing, unknown crew, arr<dep, dup id
+        payload["pairings"][0]["flight_ids"].append("NOPE")
+        payload["pairings"][0]["crew_ids"].append("GHOST")
+        payload["flights"][0]["arr_min"] = payload["flights"][0]["dep_min"] - 5
+        payload["flights"].append(dict(payload["flights"][0]))
+        problems = validate_contract(payload)
+        self.assertTrue(any("unknown flights" in p for p in problems))
+        self.assertTrue(any("unknown crews" in p for p in problems))
+        self.assertTrue(any("arr_min before dep_min" in p for p in problems))
+        self.assertTrue(any("duplicate flight id" in p for p in problems))
+
+    def test_unacclimated_crew_uses_easa_table_3(self):
+        eng = RuleEngine("EASA-FTL")
+        acc = Crew("ACC", "SFO", "P", acclimated=True)
+        unacc = Crew("UNA", "SFO", "P", acclimated=False)
+        ev = DutyEvent(crew_id="UNA", pairing_id="T", day=0,
+                       start=hm(0, 6, 0), end=hm(0, 18, 0),  # 12 h duty at 06:00
+                       segments=2, flight_min=400)
+        self.assertTrue(eng.check(acc, [ev]).ok)            # Table 2: 13 h
+        cc = eng.check(unacc, [ev])                          # Table 3: 11 h
+        self.assertIn("EASA-FTL.fdp-per-duty", [v.rule_id for v in cc.violations])
+
+    def test_ft_12mo_accumulator(self):
+        eng = RuleEngine("EASA-FTL")
+        c = Crew("MO", "SFO", "P", hist_flight_12mo=999 * 60)
+        cc = eng.check(c, [DutyEvent(crew_id="MO", pairing_id="T", day=0,
+                                     start=hm(0, 8, 0), end=hm(0, 12, 0),
+                                     segments=2, flight_min=120)])
+        self.assertIn("EASA-FTL.ft-12mo", [v.rule_id for v in cc.violations])
+
+    def test_uncovered_reason_breakdown_present(self):
+        from proto.risk import summary
+        w = build_world(days=7)
+        eng = RuleEngine("FAR117")
+        checks = evaluate(w, eng)
+        s = summary(w, checks, uncovered_flights(w, checks))
+        self.assertIn("uncovered_reasons", s)
+        self.assertGreater(sum(s["uncovered_reasons"].values()), 0)
 
 
 if __name__ == "__main__":

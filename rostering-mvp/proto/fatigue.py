@@ -8,8 +8,9 @@ integration targets, per the architecture doc). This toy scores duty load on a
                 + 0.5  per hour the duty starts before 07:00 (early start)
                 + 0.25 per hour of duty time in 22:00-04:00 (night window)
                 + 0.15 per hour of duty beyond 10 h (long day)
-  between:      rest covers physiological night (01:00-07:00) -> 0.08/min-h
-                otherwise rest            -> 0.05/min-h
+  between:      rest weighted higher if it covers the night window
+                (22:00-04:00 per the toy model)     -> 0.08/min-h
+                otherwise rest                      -> 0.05/min-h
                 rest < 10 h               -> +2.0 per missing hour
   clamp 0..100; levels: <55 ok, 55-69 elevated, >=70 high.
 
